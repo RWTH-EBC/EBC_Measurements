@@ -100,6 +100,10 @@ class DataOutputCsv(DataOutputBase):
             csv_writer = csv.writer(f, **self.csv_writer_settings)
             csv_writer.writerow(row)
 
+    @property
+    def csv_writer_settings_default(self):
+        return self._csv_writer_settings_default
+
 
 class DataLoggerBase:
     class DataSourcesHeaders(TypedDict):
