@@ -58,14 +58,17 @@ class SensoSys:
         'Only BAR': {
             'TT': '01',
             'data_start_stop_index': (1, 7),
+            'params': ['p'],
         },
         'Only HIG': {
             'TT': '02',
             'data_start_stop_index': (1, 5),
+            'params': ['rh'],
         },
         'BAR + HIG': {
             'TT': '03',
             'data_start_stop_index': (1, 12),
+            'params': ['rh', 'p'],
         },
     }
 
@@ -900,9 +903,7 @@ class SensoSys:
 
     @staticmethod
     def _hex_to_bits(hex_str: str) -> list[int]:
-        """
-        Convert a hex string to list of bits (int)
-        """
+        """Convert a hex string to list of bits (int)"""
         # Convert hex string to binary string and remove the '0b' prefix
         binary_str = bin(int(hex_str, 16))[2:].zfill(4)
         return [int(bit) for bit in binary_str]
@@ -934,9 +935,7 @@ def scan_com_ports() -> list[str] | None:
 
 
 def pop_system_device_management():
-    """
-    Pop the Device Manager 'devmgmt.msc'
-    """
+    """Pop the Device Manager 'devmgmt.msc'"""
     subprocess.Popen('devmgmt.msc', shell=True)
 
 

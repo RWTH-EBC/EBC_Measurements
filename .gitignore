@@ -240,4 +240,4 @@ fabric.properties
 
 
 # Custom
-Base/Test/
+**/Test/

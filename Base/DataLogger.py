@@ -28,6 +28,16 @@ class RandomDataSource(DataSourceBase):
         return [random.uniform(-10.0, 10.0), random.uniform(0.0, 100.0)]
 
 
+class RandomStringSource(DataSourceBase):
+    """Random string source to simulate data generation"""
+    def read_data(self) -> list:
+        def generate_random_string(length=5):
+            """Generate random string with defined length"""
+            return ''.join(random.choice(['A', 'a', 'B', 'b', 'C', 'c', 'D', 'd']) for _ in range(length))
+
+        return [None, generate_random_string(5)]
+
+
 class DataOutputBase:
     @abstractmethod
     def log_data(self, row: list):
@@ -59,12 +69,12 @@ class DataOutputCsv(DataOutputBase):
         :param file_name: Path with file name of csv data
         :param csv_writer_settings: Settings of csv writer, supported 'delimiter'
         """
-        logger.info("Initializing csv data output ...")
+        logger.info("Initializing DataOutputCsv ...")
 
         self.file_name = file_name
         self.generate_dir_of_file(self.file_name)  # Generate file path
 
-        # Get default values
+        # Get default settings
         self.csv_writer_settings = self._csv_writer_settings_default.copy()  # Use copy() to avoid change cls attribute
 
         # Set csv_writer_settings
@@ -142,7 +152,7 @@ class DataLoggerBase:
         :param data_sources_headers_mapping: Mapping of multiple data sources and headers
         :param data_outputs_mapping: Mapping of multiple outputs
         """
-        logger.info("Initializing data logger ...")
+        logger.info("Initializing DataLoggerBase ...")
 
         self.data_sources_headers_mapping = data_sources_headers_mapping
         self.data_outputs_mapping = data_outputs_mapping
@@ -198,7 +208,7 @@ class DataLoggerBase:
                 next_log_time += interval
 
                 # Get timestamp and data from all sources, using 'read_data()' method
-                timestamp = self._get_timestamp_now()
+                timestamp = self.get_timestamp_now()
                 data = [v for source in self.data_sources for v in source.read_data()]
 
                 # Check data length if activated
@@ -236,7 +246,7 @@ class DataLoggerBase:
         return len(data) == len(self.data_headers)
 
     @staticmethod
-    def _get_timestamp_now() -> str:
+    def get_timestamp_now() -> str:
         """Get the timestamp by now"""
         return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
 
@@ -248,7 +258,7 @@ class DataLoggerBase:
 
 if __name__ == "__main__":
     data_source_1 = RandomDataSource()
-    data_source_2 = RandomDataSource()
+    data_source_2 = RandomStringSource()
     data_output_1 = DataOutputCsv(file_name=os.path.join('Test', 'csv_logger_1.csv'))
     data_output_2 = DataOutputCsv(
         file_name=os.path.join('Test', 'csv_logger_2.csv'),
@@ -273,6 +283,6 @@ if __name__ == "__main__":
     )
     test_logger.run_data_logging(
         interval=2,
-        duration=None,
+        duration=10,
         check_data_length=True
     )
