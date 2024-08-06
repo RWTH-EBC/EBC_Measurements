@@ -23,7 +23,7 @@ class SensoSysDataSource(DataLogger.DataSourceBase):
         time_out: float
 
     # Class attributes: Default SensoSys configurations
-    _sensosys_configs_default: 'SensoSysDataLogger.SensoSysConfigs' = {
+    _sensosys_configs_default: 'SensoSysDataSource.SensoSysConfigs' = {
         'port': 'COM1',
         'scan_by_file': False,
         'time_out': 0.05,

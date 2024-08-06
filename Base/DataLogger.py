@@ -175,18 +175,20 @@ class DataLoggerBase:
                 _csv_header = ['Time'] + self.data_headers  # Generate csv header
                 data_output.write_csv_header(_csv_header)  # Write header to csv
             else:
-                raise ValueError(f"Invalid data output instance: '{key}': {type(data_output)}")
+                pass
 
     def run_data_logging(
             self,
             interval: int | float,
             duration: int | float | None = None,
+            add_timestamp: bool = True,
             check_data_length: bool = True
     ):
         """
         Run data logging
         :param interval: Log interval in second
         :param duration: Log duration in second, if None, the duration is infinite
+        :param add_timestamp: Add timestamp to output data
         :param check_data_length: Default True, check if the read data length same as the length of headers, if the
             lengths are different, data will not be logged, it is recommended to set it as 'True'
         """
@@ -228,10 +230,14 @@ class DataLoggerBase:
                 if valid_data_length:
                     log_count += 1  # Update log counter
                     print(f"Logging count(s): {log_count}")  # Print log counter to console
-                    stamped_data = self._add_timestamp_to_data(timestamp, data)  # Add timestamp to data
+                    # Add timestamp to data
+                    if add_timestamp:
+                        data_to_log = self._add_timestamp_to_data(timestamp, data)  # Add timestamp to data
+                    else:
+                        data_to_log = data
                     for data_output in self.data_outputs:
-                        logger.debug(f"Logging data: {stamped_data} to {data_output}")
-                        data_output.log_data(stamped_data)  # Log to all outputs
+                        logger.debug(f"Logging data: {data_to_log} to {data_output}")
+                        data_output.log_data(data_to_log)  # Log to all outputs
                 else:
                     logger.error(f"Mismatched data length = {len(data)} with headers length = {len(self.data_headers)}")
 
