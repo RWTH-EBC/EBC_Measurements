@@ -1,5 +1,5 @@
 """
-Base module: DataLogger, incl. DataSource, DataOutput
+Base module: DataLogger, incl. ABC of DataSource and DataOutput
 """
 
 from abc import ABC, abstractmethod
@@ -8,40 +8,88 @@ import csv
 import time
 import os
 import random
-import logging
 import logging.config
 # Load logging configuration from file
 logging.config.fileConfig(r'_config/logging.ini')
-logger = logging.getLogger()
+logger = logging.getLogger('DataLogger')
 
 
-class DataSourceBase:
+class DataSourceBase(ABC):
+    """
+    Data source module must take responsibility for always providing stable data length, even though some or all data
+    are missing by reading.
+
+    Data names will be directly provided from this module itself. These names should not be modified later.
+    """
+    def __init__(self):
+        self._all_data_names = None
+
     @abstractmethod
     def read_data(self) -> list:
         """Read data from source, this method will be used in DataLogger"""
         pass
 
+    @property
+    def all_data_names(self) -> list[str]:
+        return self._all_data_names
+
 
 class RandomDataSource(DataSourceBase):
     """Random data source to simulate data generation"""
+    def __init__(self):
+        super().__init__()
+        self._all_data_names = ['RandData1', 'RandData2']
+
     def read_data(self) -> list:
         return [random.uniform(-10.0, 10.0), random.uniform(0.0, 100.0)]
 
 
 class RandomStringSource(DataSourceBase):
     """Random string source to simulate data generation"""
+    def __init__(self):
+        super().__init__()
+        self._all_data_names = ['RandStr1', 'RandStr2']
+
     def read_data(self) -> list:
         def generate_random_string(length=5):
             """Generate random string with defined length"""
-            return ''.join(random.choice(['A', 'a', 'B', 'b', 'C', 'c', 'D', 'd']) for _ in range(length))
+            return ''.join(random.choice(['A', 'a', 'B', 'b', 'C', 'c', 'D', 'd', 'E', 'e']) for _ in range(length))
 
         return [None, generate_random_string(5)]
 
 
-class DataOutputBase:
+class DataOutputBase(ABC):
+    """
+    If the output format has data headers, data output module must take responsibility to check if the data length is
+    same as the headers' length, to avoid an invalid data logging.
+
+    Data headers should be directly achieved from data source with property 'all_data_names'.
+    """
+    def __init__(self, all_data_names: list[str], time_in_header: bool):
+        self._all_data_names = all_data_names
+        self._time_in_header = time_in_header
+        # Generate the header
+        self._headers = self._generate_headers()
+        self._length_headers = len(self._headers)
+
+    def _generate_headers(self) -> list[str]:
+        """Generate header of output"""
+        if self._time_in_header:
+            return ['Time'] + self._all_data_names
+        else:
+            return self._all_data_names
+
     @abstractmethod
-    def log_data(self, row: list):
-        """Log data to output, this method will be used in DataLogger"""
+    def _check_data_length(self, data: list) -> bool:
+        """Check if the data length same as the length of data names, must be implemented if output has headers"""
+        pass
+
+    @abstractmethod
+    def log_data(self, row: list) -> bool:
+        """
+        Log data to output, this method will be used in DataLogger
+        Return True for successful logging, False for failed logging
+        """
         pass
 
     @staticmethod
@@ -52,6 +100,10 @@ class DataOutputBase:
             logger.info(f"Generating dir '{dir_path}' ...")
             os.makedirs(dir_path)
 
+    @property
+    def time_in_header(self):
+        return self._time_in_header
+
 
 class DataOutputCsv(DataOutputBase):
     class CsvWriterSettings(TypedDict):
@@ -59,44 +111,67 @@ class DataOutputCsv(DataOutputBase):
         delimiter: str
 
     # Class attribute: Default setting of csv writer
-    _csv_writer_settings_default = {
+    _csv_writer_settings_default: 'DataOutputCsv.CsvWriterSettings' = {
         'delimiter': ';'  # Delimiter of csv-file
     }
 
-    def __init__(self, file_name: str, csv_writer_settings: dict[str: str] | None = None):
+    def __init__(
+            self,
+            file_name: str,
+            all_data_names: list[str],
+            time_in_header: bool = True,
+            csv_writer_settings: dict[str: str] | None = None
+    ):
         """
         Initialize data output instance for csv data
-        :param file_name: Path with file name of csv data
-        :param csv_writer_settings: Settings of csv writer, supported 'delimiter'
+        :param file_name: File name of csv data with full path
+        :param all_data_names: Data names from all sources
+        :param time_in_header: Set 'Time' to the first column of headers
+        :param csv_writer_settings: Settings of output, supported 'delimiter'
         """
         logger.info("Initializing DataOutputCsv ...")
 
+        super().__init__(all_data_names=all_data_names, time_in_header=time_in_header)
         self.file_name = file_name
         self.generate_dir_of_file(self.file_name)  # Generate file path
 
-        # Get default settings
+        # Get default csv_writer_settings
         self.csv_writer_settings = self._csv_writer_settings_default.copy()  # Use copy() to avoid change cls attribute
 
         # Set csv_writer_settings
         if csv_writer_settings is None:
-            # Use default settings
+            # Use default csv_writer_settings
             logger.info(f"Using default csv writer settings: {self.csv_writer_settings}")
         else:
-            # Check all keys in settings
+            # Check all keys in csv_writer_settings
             for key in csv_writer_settings.keys():
                 if key not in self._csv_writer_settings_default.keys():
-                    raise ValueError(f"Invalid csv writer setting key '{key}'")
-            # Update settings
+                    raise ValueError(f"Invalid key in csv writer settings '{key}'")
+            # Update csv_writer_settings
             self.csv_writer_settings.update(csv_writer_settings)
             logger.info(f"Using csv writer settings: {self.csv_writer_settings}")
 
-    def write_csv_header(self, row: list):
-        """Write header as the first row of csv"""
-        self._write_to_csv(row)
+        # Write headers to csv
+        self._write_csv_header(self._headers)
 
-    def log_data(self, row: list):
+    def log_data(self, row: list) -> bool:
         """Log data to csv"""
-        self._append_to_csv(row)
+        # Check data length
+        if self._check_data_length(row):
+            self._append_to_csv(row)  # Append data to csv
+            return True
+        else:
+            logger.error(f"Mismatched data length = {len(row)} and length of headers = {self._length_headers}, "
+                         f"skipping logging ...")
+            return False
+
+    def _check_data_length(self, data: list) -> bool:
+        """Check if the data length same as the length of data names"""
+        return len(data) == self._length_headers
+
+    def _write_csv_header(self, row: list):
+        """Write header as the first row of csv, this will erase the file"""
+        self._write_to_csv(row)
 
     def _write_to_csv(self, row: list):
         """Write a csv, the existing content in the file is erased as soon as the file is opened"""
@@ -116,31 +191,18 @@ class DataOutputCsv(DataOutputBase):
 
 
 class DataLoggerBase:
-    class DataSourcesHeaders(TypedDict):
-        """Typed dict for data sources and headers"""
-        source: DataSourceBase
-        headers: list[str]
-
     def __init__(
             self,
-            data_sources_headers_mapping: dict[str: 'DataSourcesHeaders'],
+            data_sources_mapping: dict[str: DataSourceBase],
             data_outputs_mapping: dict[str: DataOutputBase],
     ):
         """
         Initialize data logger instance
 
-        The length of header from each data source should be same as the data length read from this source
-
-        The format of data_sources_headers_mapping is as follows:
+        The format of data_sources_mapping is as follows:
         {
-            '<sou1_name>': {
-                'source': instance1 of class 'DataSourceBase' or child class,
-                'headers': [<var11_header>, <var12_header>, ...],
-            },
-            '<sou2_name>': {
-                'source': instance2 of class 'DataSourceBase',
-                'headers': [<var21_header>, <var22_header>, ...],
-            },
+            '<sou1_name>': instance1 of class 'DataSourceBase' or child class,
+            '<sou2_name>': instance2 of class 'DataSourceBase' or child class,
         }
 
         The format of data_outputs_mapping is as follows:
@@ -149,48 +211,29 @@ class DataLoggerBase:
             '<output2_name>': instance2 of class 'DataOutputBase' or child class,
         }
 
-        :param data_sources_headers_mapping: Mapping of multiple data sources and headers
-        :param data_outputs_mapping: Mapping of multiple outputs
+        :param data_sources_mapping: Mapping of multiple data sources
+        :param data_outputs_mapping: Mapping of multiple data outputs
         """
         logger.info("Initializing DataLoggerBase ...")
 
-        self.data_sources_headers_mapping = data_sources_headers_mapping
+        self.data_sources_mapping = data_sources_mapping
         self.data_outputs_mapping = data_outputs_mapping
 
         # Extract all data sources to a list (of instance(s))
-        self.data_sources = [subdict['source'] for subdict in self.data_sources_headers_mapping.values()]
+        self.data_sources = list(self.data_sources_mapping.values())
 
-        # Extract all headers to a list (of str)
-        self.data_headers = [header for subdict in self.data_sources_headers_mapping.values()
-                             for header in subdict['headers']]
-        self.data_headers_length = len(self.data_headers)  # Length of all data headers
-
-        # Extract all data outputs to a list
+        # Extract all data outputs to a list (of instance(s))
         self.data_outputs = list(self.data_outputs_mapping.values())
-
-        # Init outputs -> for new output format, add in this part
-        for key, data_output in self.data_outputs_mapping.items():
-            # Init csv output
-            if isinstance(data_output, DataOutputCsv):
-                _csv_header = ['Time'] + self.data_headers  # Generate csv header
-                data_output.write_csv_header(_csv_header)  # Write header to csv
-            else:
-                pass
 
     def run_data_logging(
             self,
             interval: int | float,
-            duration: int | float | None = None,
-            add_timestamp: bool = True,
-            check_data_length: bool = True
+            duration: int | float | None,
     ):
         """
         Run data logging
         :param interval: Log interval in second
         :param duration: Log duration in second, if None, the duration is infinite
-        :param add_timestamp: Add timestamp to output data
-        :param check_data_length: Default True, check if the read data length same as the length of headers, if the
-            lengths are different, data will not be logged, it is recommended to set it as 'True'
         """
         # Check the input
         if interval <= 0:
@@ -210,6 +253,7 @@ class DataLoggerBase:
             logger.info("Estimated end time: infinite")
         else:
             logger.info(f"Estimated end time {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
+
         # Logging data
         try:
             while end_time is None or time.time() < end_time:
@@ -220,26 +264,20 @@ class DataLoggerBase:
                 timestamp = self.get_timestamp_now()
                 data = [v for source in self.data_sources for v in source.read_data()]
 
-                # Check data length if activated
-                if check_data_length:
-                    valid_data_length = self._check_data_length(data)  # Check if data length same as headers
-                else:
-                    valid_data_length = True
+                # Log count
+                log_count += 1  # Update log counter
+                print(f"Logging count(s): {log_count}")  # Print log counter to console
 
-                # Log data, using 'log_data()' method for each output
-                if valid_data_length:
-                    log_count += 1  # Update log counter
-                    print(f"Logging count(s): {log_count}")  # Print log counter to console
-                    # Add timestamp to data
-                    if add_timestamp:
+                # Log data to each output
+                for data_output in self.data_outputs:
+                    if data_output.time_in_header:
+                        # Add timestamp to data
                         data_to_log = self._add_timestamp_to_data(timestamp, data)  # Add timestamp to data
                     else:
                         data_to_log = data
-                    for data_output in self.data_outputs:
-                        logger.debug(f"Logging data: {data_to_log} to {data_output}")
-                        data_output.log_data(data_to_log)  # Log to all outputs
-                else:
-                    logger.error(f"Mismatched data length = {len(data)} with headers length = {len(self.data_headers)}")
+                    # Log data, using 'log_data()' method
+                    logger.debug(f"Logging data: {data_to_log} to {data_output}")
+                    data_output.log_data(data_to_log)  # Log to all outputs
 
                 # Calculate the time to sleep to maintain the interval
                 sleep_time = next_log_time - time.time()
@@ -253,10 +291,6 @@ class DataLoggerBase:
             logger.info("Data logging completed")
         except KeyboardInterrupt:
             logger.warning("Data logging stopped manually")
-
-    def _check_data_length(self, data: list) -> bool:
-        """Check if the data length same as the length of headers"""
-        return len(data) == len(self.data_headers)
 
     @staticmethod
     def get_timestamp_now() -> str:
@@ -272,30 +306,29 @@ class DataLoggerBase:
 if __name__ == "__main__":
     data_source_1 = RandomDataSource()
     data_source_2 = RandomStringSource()
-    data_output_1 = DataOutputCsv(file_name=os.path.join('Test', 'csv_logger_1.csv'))
+    data_output_1 = DataOutputCsv(
+        file_name='Test/csv_logger_1.csv',
+        all_data_names=data_source_1.all_data_names + data_source_2.all_data_names,
+        time_in_header=True,
+    )
     data_output_2 = DataOutputCsv(
-        file_name=os.path.join('Test', 'csv_logger_2.csv'),
+        file_name='Test/csv_logger_2.csv',
+        all_data_names=data_source_1.all_data_names + data_source_2.all_data_names,
+        time_in_header=False,
         csv_writer_settings={'delimiter': '\t'}
     )
 
     test_logger = DataLoggerBase(
-        data_sources_headers_mapping={
-            'Sou1': {
-                'source': data_source_1,
-                'headers': ['value_11', 'value_12']
-            },
-            'Sou2': {
-                'source': data_source_2,
-                'headers': ['value_21', 'value_22']
-            },
+        data_sources_mapping={
+            'Sou1': data_source_1,
+            'Sou2': data_source_2,
         },
         data_outputs_mapping={
             'Log1': data_output_1,
-            'Log2': data_output_2
+            'Log2': data_output_2,
         }
     )
     test_logger.run_data_logging(
         interval=2,
-        duration=10,
-        check_data_length=True
+        duration=10
     )

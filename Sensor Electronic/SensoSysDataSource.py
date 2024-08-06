@@ -335,11 +335,11 @@ if __name__ == '__main__':
     )
 
     # Init csv output
-    csv_output = DataLogger.DataOutputCsv(file_name=os.path.join('Test', 'csv_logger.csv'))
+    csv_output = DataLogger.DataOutputCsv(file_name=os.path.join('Test', 'csv_logger.csv'), all_data_names=)
 
     # Init DataLogger
     test_logger = DataLogger.DataLoggerBase(
-        data_sources_headers_mapping={
+        data_sources_mapping={
             'senso_sys': {
                 'source': senso_sys_source,
                 'headers': senso_sys_source.get_all_measurement_parameters(),

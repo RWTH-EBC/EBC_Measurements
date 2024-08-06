@@ -9,7 +9,6 @@ import time
 
 from Base import DataLogger, Auxiliary
 from typing import TypedDict
-from enum import Enum
 import pyads
 import os
 import logging
@@ -181,14 +180,14 @@ if __name__ == '__main__':
     )
 
     # Init csv output
-    csv_output = DataLogger.DataOutputCsv(file_name=os.path.join('Test', 'csv_logger.csv'))
+    csv_output = DataLogger.DataOutputCsv(file_name=os.path.join('Test', 'csv_logger.csv'), all_data_names=)
 
     # Init random source
     random_source = DataLogger.RandomDataSource()
 
     # Init DataLoggers
     test_logger_read = DataLogger.DataLoggerBase(
-        data_sources_headers_mapping={
+        data_sources_mapping={
             'ads': {
                 'source': ads_source_output,
                 'headers': ads_source_output.get_all_read_data_names(),
@@ -199,7 +198,7 @@ if __name__ == '__main__':
         },
     )
     test_logger_write = DataLogger.DataLoggerBase(
-        data_sources_headers_mapping={
+        data_sources_mapping={
             'random': {
                 'source': random_source,
                 'headers': Auxiliary.load_json('_config/AdsWriteDataExamples.json'),
@@ -217,5 +216,5 @@ if __name__ == '__main__':
     test_logger_write.run_data_logging(
         interval=1,
         duration=None,
-        add_timestamp=False
+        with_timestamp=False
     )
