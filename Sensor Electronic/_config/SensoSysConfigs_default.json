@@ -1,0 +1,5 @@
+{
+    "port": "COM6",
+    "scan_by_file": true,
+    "time_out": 0.05
+}
