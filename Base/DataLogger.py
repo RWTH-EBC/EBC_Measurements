@@ -183,6 +183,13 @@ class DataLoggerBase:
             duration: int | float | None = None,
             check_data_length: bool = True
     ):
+        """
+        Run data logging
+        :param interval: Log interval in second
+        :param duration: Log duration in second, if None, the duration is infinite
+        :param check_data_length: Default True, check if the read data length same as the length of headers, if the
+            lengths are different, data will not be logged, it is recommended to set it as 'True'
+        """
         # Check the input
         if interval <= 0:
             raise ValueError(f"Logging interval '{interval}' should be greater than 0")

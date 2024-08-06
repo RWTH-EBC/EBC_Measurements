@@ -1,8 +1,6 @@
 """
 Module SensoSysDataSource: Interface to DataLogger
 """
-import os
-import time
 
 from Base import DataLogger, Auxiliary
 import SensoSysDevices
@@ -14,7 +12,7 @@ import logging
 import logging.config
 # Load logging configuration from file
 logging.config.fileConfig(r'_config/logging.ini')
-logger = logging.getLogger()
+logger = logging.getLogger('SensoSys')
 
 
 class SensoSysDataSource(DataLogger.DataSourceBase):
@@ -327,9 +325,12 @@ class SensoSysDataSource(DataLogger.DataSourceBase):
 
 
 if __name__ == '__main__':
+    # If configuration from file
+    CONFIG_FROM_FILE = False
+
     # Init SensoSys
     senso_sys_source = SensoSysDataSource(
-        sensosys_config_file=None,  # r'_config/SensoSysConfigs_default.json',
+        sensosys_config_file=r'_config/SensoSysConfigs_default.json' if CONFIG_FROM_FILE else None,
         output_dir='Test'
     )
 
