@@ -2,9 +2,8 @@
 Module SensoSysDataSource: Interface to DataLogger
 """
 
-from Base.DataSource import DataSourceBase
-from Base import Auxiliary
-import SensoSysDevices
+from Base import DataSource, Auxiliary
+from Sensor_Electronic import SensoSysDevices
 from typing import TypedDict
 from datetime import datetime
 import os
@@ -15,19 +14,12 @@ logging.config.fileConfig(r'_config/logging.ini')
 logger = logging.getLogger('SensoSys')
 
 
-class SensoSysDataSource(DataSourceBase):
+class SensoSysDataSource(DataSource.DataSourceBase):
     class SensoSysConfigs(TypedDict):
         """Typed dict for SensoSys configurations"""
         port: str
         scan_by_file: bool
         time_out: float
-
-    # Class attributes: Default SensoSys configurations
-    _sensosys_configs_default: 'SensoSysDataSource.SensoSysConfigs' = {
-        'port': 'COM1',
-        'scan_by_file': False,
-        'time_out': 0.05,
-    }
 
     def __init__(self, sensosys_config_file: str | None = None, output_dir: str | None = None):
         """
@@ -58,8 +50,12 @@ class SensoSysDataSource(DataSourceBase):
             if not os.path.exists(self.output_dir):
                 os.makedirs(self.output_dir)
 
-        # Get default configurations
-        self.sensosys_configs = self._sensosys_configs_default.copy()
+        # Default configurations
+        self.sensosys_configs: 'SensoSysDataSource.SensoSysConfigs' = {
+            'port': 'COM1',
+            'scan_by_file': False,
+            'time_out': 0.05,
+        }
 
         # Scan available COM port(s)
         self.available_ports = self._scan_available_ports()
@@ -330,11 +326,10 @@ class SensoSysDataSource(DataSourceBase):
 
 
 if __name__ == '__main__':
-    from Base.DataOutput import DataOutputCsv
-    from Base.DataLogger import DataLoggerTimeTrigger
+    from Base import DataOutput, DataLogger
 
     # If configuration from file
-    CONFIG_FROM_FILE = False
+    CONFIG_FROM_FILE = True
 
     # Init SensoSysDataSource
     senso_sys_source = SensoSysDataSource(
@@ -344,13 +339,13 @@ if __name__ == '__main__':
     print(f"All data names of senso_sys_source: {senso_sys_source.all_data_names}")
 
     # Init csv output
-    csv_output = DataOutputCsv(
+    csv_output = DataOutput.DataOutputCsv(
         file_name='Test/csv_logger.csv',
         all_data_names=senso_sys_source.all_data_names
     )
 
     # Init DataLogger
-    time_logger = DataLoggerTimeTrigger(
+    time_logger = DataLogger.DataLoggerTimeTrigger(
         data_sources_mapping={'senso_sys': senso_sys_source},
         data_outputs_mapping={'csv_output': csv_output},
     )

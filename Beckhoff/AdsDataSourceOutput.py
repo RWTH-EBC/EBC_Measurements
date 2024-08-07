@@ -4,21 +4,19 @@ Module AdsDataSourceOutput: Interface of ADS (Beckhoff TwinCAT) to DataLogger
 What is Automation Device Specification (ADS):
     See https://infosys.beckhoff.com/english.php?content=../content/1033/tcinfosys3/11291871243.html&id=
 """
-import sys
-import time
-
-from Base import DataLogger, Auxiliary
+from Base.DataSource import DataSourceBase
+from Base.DataOutput import DataOutputBase
+from Base import Auxiliary
 from typing import TypedDict
 import pyads
 import os
-import logging
 import logging.config
 # Load logging configuration from file
 logging.config.fileConfig(r'_config/logging.ini')
 logger = logging.getLogger('ADS')
 
 
-class AdsDataSourceOutput(DataLogger.DataSourceBase, DataLogger.DataOutputBase):
+class AdsDataSourceOutput(DataSourceBase, DataOutputBase):
     # Class attribute: ADS states
     _ads_states = {
         pyads.ADSSTATE_INVALID: 'Invalid',  # 0

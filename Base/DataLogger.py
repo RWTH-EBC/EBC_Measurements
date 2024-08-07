@@ -2,8 +2,7 @@
 Base module: DataLogger, incl. ABC of DataSource and DataOutput
 """
 
-from Base.DataSource import DataSourceBase
-from Base.DataOutput import DataOutputBase
+from Base import DataSource, DataOutput
 from abc import ABC, abstractmethod
 import time
 import logging.config
@@ -15,8 +14,8 @@ logger = logging.getLogger('DataLogger')
 class DataLoggerBase(ABC):
     def __init__(
             self,
-            data_sources_mapping: dict[str: DataSourceBase],
-            data_outputs_mapping: dict[str: DataOutputBase],
+            data_sources_mapping: dict[str: DataSource.DataSourceBase],
+            data_outputs_mapping: dict[str: DataOutput.DataOutputBase],
     ):
         """
         Initialize data logger instance
@@ -70,8 +69,8 @@ class DataLoggerBase(ABC):
 class DataLoggerTimeTrigger(DataLoggerBase):
     def __init__(
             self,
-            data_sources_mapping: dict[str: DataSourceBase],
-            data_outputs_mapping: dict[str: DataOutputBase],
+            data_sources_mapping: dict[str: DataSource.DataSourceBase],
+            data_outputs_mapping: dict[str: DataOutput.DataOutputBase],
     ):
         logger.info("Initializing DataLoggerTimeTrigger ...")
         super().__init__(data_sources_mapping, data_outputs_mapping)
@@ -151,16 +150,13 @@ class DataLoggerTimeTrigger(DataLoggerBase):
 
 
 if __name__ == "__main__":
-    from Base.DataSource import RandomDataSource, RandomStringSource
-    from Base.DataOutput import DataOutputCsv
-
-    data_source_1 = RandomDataSource(size=5, missing_rate=0.5)
-    data_source_2 = RandomStringSource(size=5, str_length=5)
-    data_output_1 = DataOutputCsv(
+    data_source_1 = DataSource.RandomDataSource(size=5, missing_rate=0.5)
+    data_source_2 = DataSource.RandomStringSource(size=5, str_length=5)
+    data_output_1 = DataOutput.DataOutputCsv(
         file_name='Test/csv_logger_1.csv',
         all_data_names=data_source_1.all_data_names + data_source_2.all_data_names,
     )
-    data_output_2 = DataOutputCsv(
+    data_output_2 = DataOutput.DataOutputCsv(
         file_name='Test/csv_logger_2.csv',
         all_data_names=data_source_1.all_data_names + data_source_2.all_data_names,
         csv_writer_settings={'delimiter': '\t'}
