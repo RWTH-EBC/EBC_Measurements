@@ -14,48 +14,7 @@ logging.config.fileConfig(r'_config/logging.ini')
 logger = logging.getLogger('DataLogger')
 
 
-class DataSourceBase(ABC):
-    """
-    Data source module must take responsibility for always providing stable data length, even though some or all data
-    are missing by reading.
 
-    Data names will be directly provided from this module itself. These names should not be modified later.
-    """
-    def __init__(self):
-        self._all_data_names = None
-
-    @abstractmethod
-    def read_data(self) -> list:
-        """Read data from source, this method will be used in DataLogger"""
-        pass
-
-    @property
-    def all_data_names(self) -> list[str]:
-        return self._all_data_names
-
-
-class RandomDataSource(DataSourceBase):
-    """Random data source to simulate data generation"""
-    def __init__(self):
-        super().__init__()
-        self._all_data_names = ['RandData1', 'RandData2']
-
-    def read_data(self) -> list:
-        return [random.uniform(-10.0, 10.0), random.uniform(0.0, 100.0)]
-
-
-class RandomStringSource(DataSourceBase):
-    """Random string source to simulate data generation"""
-    def __init__(self):
-        super().__init__()
-        self._all_data_names = ['RandStr1', 'RandStr2']
-
-    def read_data(self) -> list:
-        def generate_random_string(length=5):
-            """Generate random string with defined length"""
-            return ''.join(random.choice(['A', 'a', 'B', 'b', 'C', 'c', 'D', 'd', 'E', 'e']) for _ in range(length))
-
-        return [None, generate_random_string(5)]
 
 
 class DataOutputBase(ABC):
