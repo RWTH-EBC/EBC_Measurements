@@ -116,6 +116,8 @@ class DataLoggerTimeTrigger(DataLoggerBase):
 
                 # Log data to each output
                 for data_output in self._data_outputs:
+                    if hasattr(data_output, 'data_output'):
+                        data_output = data_output.data_output  # For instance with nested class, e.g. Beckhoff
                     if data_output.time_in_header:
                         # Add timestamp to data
                         row_to_log = self._add_timestamp_to_row(timestamp, row)  # Add timestamp to data

@@ -115,7 +115,17 @@ class AdsDataSourceOutput:
             source_data_names: list[str] | None = None,
             output_data_names: list[str] | None = None
     ):
-        """TODO: Describe add router"""
+        """
+        Initialization of AdsDataSourceOutput instance
+
+        Before running the program, routes must be added via TwinCAT or TwinCAT Router UI, see:
+        https://infosys.beckhoff.com/content/1033/tc3_system/5211773067.html?id=2762137833336592415
+
+        :param ams_net_id: See pyads
+        :param ams_net_port: See pyads
+        :param source_data_names: List of source names to be read from PLC, None to deactivate read function
+        :param output_data_names: List of output names to be write to PLC, None to deactivate write function
+        """
         logger.info("Initializing AdsDataSourceOutput ...")
         self.ams_net_id = ams_net_id
         self.ams_net_port = ams_net_port
@@ -149,6 +159,13 @@ class AdsDataSourceOutput:
         else:
             logger.error(f"Connect to PLC failed, exiting ...")
             sys.exit(1)
+
+    def __del__(self):
+        """Destructor method to ensure PLC disconnected"""
+        if self.plc.is_open:
+            self._plc_close()
+        else:
+            logger.info("PLC already disconnected")
 
     def _plc_connect(self):
         """Try to connect PLC only once"""
@@ -195,6 +212,7 @@ class AdsDataSourceOutput:
         return self._ads_states.get(_ads_state_int), self._ads_return_codes.get(_device_state_int)
 
     def read_data(self) -> list | None:
+        """Read data from PLC"""
         if isinstance(self._data_source, self.AdsDataSource):
             if self.plc_connected:
                 return self._data_source.read_data()
@@ -205,6 +223,7 @@ class AdsDataSourceOutput:
             raise AttributeError("No data source exists, please check the initialization")
 
     def log_data(self, row: list):
+        """Log data to PLC"""
         if isinstance(self._data_output, self.AdsDataOutput):
             if self.plc_connected:
                 return self._data_output.check_and_log_data(row)
@@ -233,8 +252,9 @@ class AdsDataSourceOutput:
 
 if __name__ == '__main__':
     from Base import Auxiliary, DataLogger
+    import threading
 
-    # Init ADS
+    # Init ADS for data source and output
     ads_source_output = AdsDataSourceOutput(
         ams_net_id='5.78.127.222.1.1',
         source_data_names=Auxiliary.load_json('_config/AdsReadDataExamples.json')[:20],
@@ -242,7 +262,7 @@ if __name__ == '__main__':
     )
 
     # Init csv output
-    csv_output = DataLogger.DataOutputCsv(
+    csv_output = DataOutput.DataOutputCsv(
         file_name=os.path.join('Test', 'csv_logger.csv'),
         all_data_names=ads_source_output.data_source.all_data_names
     )
@@ -251,35 +271,29 @@ if __name__ == '__main__':
     random_source = DataSource.RandomDataSource(size=2, missing_rate=0.5)
 
     # Init DataLoggers
-    test_logger_read = DataLogger.DataLoggerBase(
-        data_sources_mapping={
-            'ads': {
-                'source': ads_source_output,
-                'headers': ads_source_output.get_all_read_data_names(),
-            }
-        },
-        data_outputs_mapping={
-            'csv_output': csv_output
-        },
+    test_logger_read = DataLogger.DataLoggerTimeTrigger(
+        data_sources_mapping={'ads': ads_source_output},
+        data_outputs_mapping={'csv_output': csv_output},
     )
-    test_logger_write = DataLogger.DataLoggerBase(
-        data_sources_mapping={
-            'random': {
-                'source': random_source,
-                'headers': Auxiliary.load_json('_config/AdsWriteDataExamples.json'),
-            }
-        },
-        data_outputs_mapping={
-            'ads_output': ads_source_output
-        },
+    test_logger_write = DataLogger.DataLoggerTimeTrigger(
+        data_sources_mapping={'random': random_source},
+        data_outputs_mapping={'ads_output': ads_source_output},
     )
+
     # Run DataLoggers
-    test_logger_read.run_data_logging(
-        interval=1,
-        duration=10
+    thread_1 = threading.Thread(
+        target=test_logger_read.run_data_logging,
+        args=(2, 30),
+        name='PLC to csv',
     )
-    test_logger_write.run_data_logging(
-        interval=1,
-        duration=None,
-        with_timestamp=False
+    thread_2 = threading.Thread(
+        target=test_logger_write.run_data_logging,
+        args=(1, 30),
+        name='Rnd to PLC',
     )
+    thread_1.start()
+    time.sleep(0.5)
+    thread_2.start()
+    thread_1.join()
+    thread_2.join()
+    print("Both data logging tasks have completed.")
