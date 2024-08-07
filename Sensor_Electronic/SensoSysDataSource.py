@@ -1,35 +1,25 @@
 """
 Module SensoSysDataSource: Interface to DataLogger
 """
-import os
-import time
 
-from Base import DataLogger, Auxiliary
-import SensoSysDevices
+from Base import DataSource, Auxiliary
+from Sensor_Electronic import SensoSysDevices
 from typing import TypedDict
 from datetime import datetime
 import os
 import sys
-import logging
 import logging.config
 # Load logging configuration from file
 logging.config.fileConfig(r'_config/logging.ini')
-logger = logging.getLogger()
+logger = logging.getLogger('SensoSys')
 
 
-class SensoSysDataSource(DataLogger.DataSourceBase):
+class SensoSysDataSource(DataSource.DataSourceBase):
     class SensoSysConfigs(TypedDict):
         """Typed dict for SensoSys configurations"""
         port: str
         scan_by_file: bool
         time_out: float
-
-    # Class attributes: Default SensoSys configurations
-    _sensosys_configs_default: 'SensoSysDataLogger.SensoSysConfigs' = {
-        'port': 'COM1',
-        'scan_by_file': False,
-        'time_out': 0.05,
-    }
 
     def __init__(self, sensosys_config_file: str | None = None, output_dir: str | None = None):
         """
@@ -48,6 +38,7 @@ class SensoSysDataSource(DataLogger.DataSourceBase):
         """
         logger.info("Initializing SensoSysDataSource ...")
 
+        super().__init__()
         self.sensosys_config_file = sensosys_config_file
         self.output_dir = output_dir
 
@@ -59,8 +50,12 @@ class SensoSysDataSource(DataLogger.DataSourceBase):
             if not os.path.exists(self.output_dir):
                 os.makedirs(self.output_dir)
 
-        # Get default configurations
-        self.sensosys_configs = self._sensosys_configs_default.copy()
+        # Default configurations
+        self.sensosys_configs: 'SensoSysDataSource.SensoSysConfigs' = {
+            'port': 'COM1',
+            'scan_by_file': False,
+            'time_out': 0.05,
+        }
 
         # Scan available COM port(s)
         self.available_ports = self._scan_available_ports()
@@ -82,7 +77,7 @@ class SensoSysDataSource(DataLogger.DataSourceBase):
                 logger.warning(f"Failed to update SensoSys configurations by file, using default values ...")
 
         # Init SensoSys
-        logger.info(f"Initializing SensoSys with configurations: {self.sensosys_configs}")
+        logger.info(f"Initializing SensoSysDevices with configurations: {self.sensosys_configs}")
         self.sensosys = SensoSysDevices.SensoSys(
             port=self.sensosys_configs['port'],
             time_out=self.sensosys_configs['time_out'],
@@ -103,9 +98,7 @@ class SensoSysDataSource(DataLogger.DataSourceBase):
             sys.exit(0)
         else:
             _continue = self._get_if_continue()
-            if _continue:
-                pass
-            else:
+            if not _continue:
                 logger.info("Exiting manually ...")
                 sys.exit(0)
 
@@ -118,6 +111,9 @@ class SensoSysDataSource(DataLogger.DataSourceBase):
         # Convert scanned devices to a list of [(id, name, sensor_config), ...] to simplify data reading
         self.sensosys_devices_list = [
             (k, v['instrument_name'], v.get('sensor_config')) for k, v in self.sensosys_devices.items()]
+
+        # Set all_data_names
+        self._all_data_names = self._get_all_data_names()
 
     def _get_sensosys_configs_by_guide(self) -> bool:
         """Get SensoSys configurations by a user guide"""
@@ -151,9 +147,9 @@ class SensoSysDataSource(DataLogger.DataSourceBase):
         # Check the file path
         if os.path.isfile(file_name):
             # Check the keys
-            _configs = Auxiliary.load_json(file_name)
-            if set(_configs.keys()) == set(self.sensosys_configs.keys()):
-                self.sensosys_configs.update(_configs)  # Update values of configurations
+            configs = Auxiliary.load_json(file_name)
+            if set(configs.keys()) == set(self.sensosys_configs.keys()):
+                self.sensosys_configs.update(configs)  # Update values of configurations
                 return True
             else:
                 logger.error(f"Some keys in file {file_name} are invalid or incomplete")
@@ -168,9 +164,9 @@ class SensoSysDataSource(DataLogger.DataSourceBase):
 
     def _scan_devices_by_file(self, file_name: str) -> dict[str: dict]:
         """Scan devices by ids read from a file"""
-        _ids_str = Auxiliary.load_json(file_name)
-        _ids = [int(i) for i in _ids_str]
-        return self._scan_devices(ids=_ids)
+        ids_str = Auxiliary.load_json(file_name)
+        ids = [int(i) for i in ids_str]
+        return self._scan_devices(ids=ids)
 
     def _scan_devices_by_ids(self) -> dict[str: dict]:
         """Scan devices by id from 0 (00) to 255 (FF)"""
@@ -181,95 +177,98 @@ class SensoSysDataSource(DataLogger.DataSourceBase):
         available_devices = {}
         for _id in ids:
             logger.info(f"Scanning address ID {_id} ...")
-            _device_name_response = self.sensosys.read_instrument_name(_id)
-            if _device_name_response is not None:
+            device_name_response = self.sensosys.read_instrument_name(_id)
+            if device_name_response is not None:
                 # Get and convert instrument name to upper case
-                _device_name_response['instrument_name'] = _device_name_response['instrument_name'].upper().strip()
-                _instrument_name = _device_name_response['instrument_name']
+                device_name_response['instrument_name'] = device_name_response['instrument_name'].upper().strip()
+                instrument_name = device_name_response['instrument_name']
                 logger.info(
-                    f"Found device with ID '{_id}', instrument name '{_instrument_name}'")
+                    f"Found device with ID '{_id}', instrument name '{instrument_name}'")
 
-                # Read device information
-                _device_responses = _device_name_response  # Dict for all responses
-                _device_responses.update(self.sensosys.read_serial_number(_id))  # Serial number
-                _device_responses.update(self.sensosys.read_expired_calibration_date(_id))  # Calibration expired data
-                _device_responses.update(self.sensosys.read_battery_state(_id))  # Battery state
-                if _instrument_name.startswith('ANEMO'):
-                    _device_responses.update(self.sensosys.senso_anemo_read_configuration(_id))
-                    _device_responses.update(self.sensosys.senso_anemo_read_indicator(_id))
-                elif _instrument_name.startswith('THERM'):
-                    _device_responses.update(self.sensosys.senso_therm_read_configuration(_id))
+                # Read common device information
+                device_responses = device_name_response  # Dict for all responses
+                device_responses.update(self.sensosys.read_serial_number(_id))  # Serial number
+                device_responses.update(self.sensosys.read_expired_calibration_date(_id))  # Calibration expired data
+                device_responses.update(self.sensosys.read_battery_state(_id))  # Battery state
+
+                # Read special device information
+                if instrument_name.startswith('ANEMO'):
+                    device_responses.update(self.sensosys.senso_anemo_read_configuration(_id))
+                    device_responses.update(self.sensosys.senso_anemo_read_indicator(_id))
+                elif instrument_name.startswith('THERM'):
+                    device_responses.update(self.sensosys.senso_therm_read_configuration(_id))
                     for _ch in range(1, 5):
-                        _device_responses.update({
+                        device_responses.update({
                             f'senso_therm_indicator_channel_{_ch}': self.sensosys.senso_therm_read_indicator(
                                 _id, _ch).get('senso_therm_indicator')
                         })
-                elif _instrument_name.startswith('HYGRO'):
-                    _device_responses.update(self.sensosys.senso_hygbar_read_configuration(_id))
+                elif instrument_name.startswith('HYGRO'):
+                    device_responses.update(self.sensosys.senso_hygbar_read_configuration(_id))
                 else:
-                    raise ValueError(f"Invalid instrument name '{_instrument_name}'")
+                    raise ValueError(f"Invalid instrument name '{instrument_name}'")
 
                 # Convert calibration expired date format
-                _exp_date = _device_responses.get('calibration_expired_date')
-                _date_formats = ['%d-%m-%y', '%d.%m.%y']
-                if _exp_date is not None:
-                    for _fmt in _date_formats:
+                exp_date = device_responses.get('calibration_expired_date')
+                date_formats = ['%d-%m-%y', '%d.%m.%y']
+                if exp_date is not None:
+                    for _fmt in date_formats:
                         try:
-                            _device_responses['calibration_expired_date'] = datetime.strptime(
-                                _exp_date, _fmt).strftime('%Y-%m-%d')
+                            device_responses['calibration_expired_date'] = datetime.strptime(
+                                exp_date, _fmt).strftime('%Y-%m-%d')
+                            break  # Exit the loop once the date is successfully parsed
                         except ValueError:
-                            continue
+                            continue  # If parsing fails, continue to the next format
 
                 # Update available devices
-                available_devices.update({str(_id): _device_responses})
+                available_devices.update({str(_id): device_responses})
         return available_devices
 
-    def get_all_measurement_parameters(self) -> list:
+    def _get_all_data_names(self) -> list:
         """Get all measurement parameters for instruments that found"""
-        _params = []
+        names = []
         for _id, _name, _sensor_config in self.sensosys_devices_list:
             if _name.startswith('ANEMO'):
-                _params = _params + [f't_a_{_id}', f'v_{_id}', f'vstar_{_id}']
+                names = names + [f't_a_{_id}', f'v_{_id}', f'vstar_{_id}']
             elif _name.startswith('THERM'):
-                _params = _params + [f't_a_{_id}', f't_g_{_id}', f't_w_{_id}', f't_s_{_id}']
+                names = names + [f't_a_{_id}', f't_g_{_id}', f't_w_{_id}', f't_s_{_id}']
             elif _name.startswith('HYGRO'):
-                _params = _params + [
+                names = names + [
                     f'{p}_{_id}' for p in self.sensosys.senso_hygbar_sensor_config[_sensor_config]['params']]
             else:
                 raise ValueError(f"Invalid instrument name '{_name}'")
-        return _params
+        return names
 
     def read_data(self) -> list:
         """Read all measurement data for instruments that found"""
-        _data = []
+        data = []
         for _id, _name, _sensor_config in self.sensosys_devices_list:
             _id = int(_id)  # Convert str id to int
             if _name.startswith('ANEMO'):
-                _resp = self.sensosys.senso_anemo_read_measurement_data(_id)
-                if _resp is None:
+                resp = self.sensosys.senso_anemo_read_measurement_data(_id)
+                if resp is None:
                     logger.warning(f"No data received from {_id} - {_name} ...")
-                    _data = _data + [None, None, None]
+                    data = data + [None, None, None]
                 else:
-                    _data = _data + [_resp.get('t_a'), _resp.get('v'), _resp.get('v_star')]
+                    data = data + [resp.get('t_a'), resp.get('v'), resp.get('v_star')]
             elif _name.startswith('THERM'):
-                _resp = self.sensosys.senso_therm_read_temperatures_enabled_channels(_id)
-                if _resp is None:
+                resp = self.sensosys.senso_therm_read_temperatures_enabled_channels(_id)
+                if resp is None:
                     logger.warning(f"No data received from {_id} - {_name} ...")
-                    _data = _data + [None, None, None, None]
+                    data = data + [None, None, None, None]
                 else:
-                    _data = _data + [_resp.get('t_a'), _resp.get('t_g'), _resp.get('t_w'), _resp.get('t_s')]
+                    data = data + [resp.get('t_a'), resp.get('t_g'), resp.get('t_w'), resp.get('t_s')]
             elif _name.startswith('HYGRO'):
-                _resp = self.sensosys.senso_hygbar_read_measurement_data(_id, _sensor_config)
-                if _resp is None:
+                resp = self.sensosys.senso_hygbar_read_measurement_data(_id, _sensor_config)
+                if resp is None:
                     logger.warning(f"No data received from {_id} - {_name} ...")
-                    _data = _data + [
+                    data = data + [
                         None for _ in range(len(self.sensosys.senso_hygbar_sensor_config[_sensor_config]['params']))]
                 else:
-                    _data = _data + [
-                        _resp.get(p) for p in self.sensosys.senso_hygbar_sensor_config[_sensor_config]['params']]
+                    data = data + [
+                        resp.get(p) for p in self.sensosys.senso_hygbar_sensor_config[_sensor_config]['params']]
             else:
                 raise ValueError(f"Invalid instrument name '{_name}'")
-        return _data
+        return data
 
     @staticmethod
     def _scan_available_ports():
@@ -327,29 +326,31 @@ class SensoSysDataSource(DataLogger.DataSourceBase):
 
 
 if __name__ == '__main__':
-    # Init SensoSys
+    from Base import DataOutput, DataLogger
+
+    # If configuration from file
+    CONFIG_FROM_FILE = True
+
+    # Init SensoSysDataSource
     senso_sys_source = SensoSysDataSource(
-        sensosys_config_file=None,  # r'_config/SensoSysConfigs_default.json',
+        sensosys_config_file=r'_config/SensoSysConfigs_default.json' if CONFIG_FROM_FILE else None,
         output_dir='Test'
     )
+    print(f"All data names of senso_sys_source: {senso_sys_source.all_data_names}")
 
     # Init csv output
-    csv_output = DataLogger.DataOutputCsv(file_name=os.path.join('Test', 'csv_logger.csv'))
+    csv_output = DataOutput.DataOutputCsv(
+        file_name='Test/csv_logger.csv',
+        all_data_names=senso_sys_source.all_data_names
+    )
 
     # Init DataLogger
-    test_logger = DataLogger.DataLoggerBase(
-        data_sources_headers_mapping={
-            'senso_sys': {
-                'source': senso_sys_source,
-                'headers': senso_sys_source.get_all_measurement_parameters(),
-            }
-        },
-        data_outputs_mapping={
-            'csv_output': csv_output
-        },
+    time_logger = DataLogger.DataLoggerTimeTrigger(
+        data_sources_mapping={'senso_sys': senso_sys_source},
+        data_outputs_mapping={'csv_output': csv_output},
     )
     # Run DataLogger
-    test_logger.run_data_logging(
+    time_logger.run_data_logging(
         interval=1,
-        duration=60
+        duration=30
     )

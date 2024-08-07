@@ -33,7 +33,6 @@ import serial.tools.list_ports
 import sys
 import subprocess
 import time
-import logging
 import logging.config
 # Load logging configuration from file
 logging.config.fileConfig(r'_config/logging.ini')
