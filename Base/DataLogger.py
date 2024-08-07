@@ -2,8 +2,8 @@
 Base module: DataLogger, incl. ABC of DataSource and DataOutput
 """
 
-from DataSource import DataSourceBase, RandomDataSource, RandomStringSource
-from DataOutput import DataOutputBase, DataOutputCsv
+from Base.DataSource import DataSourceBase
+from Base.DataOutput import DataOutputBase
 from abc import ABC, abstractmethod
 import time
 import logging.config
@@ -71,7 +71,7 @@ class DataLoggerTimeTrigger(DataLoggerBase):
     def __init__(
             self,
             data_sources_mapping: dict[str: DataSourceBase],
-            data_outputs_mapping: dict[str: DataOutputBase]
+            data_outputs_mapping: dict[str: DataOutputBase],
     ):
         logger.info("Initializing DataLoggerTimeTrigger ...")
         super().__init__(data_sources_mapping, data_outputs_mapping)
@@ -151,6 +151,9 @@ class DataLoggerTimeTrigger(DataLoggerBase):
 
 
 if __name__ == "__main__":
+    from Base.DataSource import RandomDataSource, RandomStringSource
+    from Base.DataOutput import DataOutputCsv
+
     data_source_1 = RandomDataSource(size=5, missing_rate=0.5)
     data_source_2 = RandomStringSource(size=5, str_length=5)
     data_output_1 = DataOutputCsv(
