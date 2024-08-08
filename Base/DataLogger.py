@@ -16,33 +16,76 @@ class DataLoggerBase(ABC):
             self,
             data_sources_mapping: dict[str: DataSource.DataSourceBase],
             data_outputs_mapping: dict[str: DataOutput.DataOutputBase],
+            data_source_prefix_delimiter: str | None = None
     ):
         """
         Initialize data logger instance
 
         The format of data_sources_mapping is as follows:
         {
-            '<sou1_name>': instance1 of class 'DataSourceBase' or child class,
-            '<sou2_name>': instance2 of class 'DataSourceBase' or child class,
+            '<source1_name>': instance1 of DataSource,
+            '<source2_name>': instance2 of DataSource,
         }
 
         The format of data_outputs_mapping is as follows:
         {
-            '<output1_name>': instance1 of class 'DataOutputBase' or child class,
-            '<output2_name>': instance2 of class 'DataOutputBase' or child class,
+            '<output1_name>': instance1 of class DataOutput,
+            '<output2_name>': instance2 of class DataOutput,
         }
 
         :param data_sources_mapping: Mapping of multiple data sources
         :param data_outputs_mapping: Mapping of multiple data outputs
+        :param data_source_prefix_delimiter: If not None, source name will be added as prefix to variable names for
+        each output, prefix separated from the variable name with the here defined delimiter
         """
-        self._data_sources_mapping = data_sources_mapping
-        self._data_outputs_mapping = data_outputs_mapping
-
-        # Extract all data sources to a list (of instance(s))
+        # Extract all data sources and outputs to dict (values as instance(s)), also for nested class, e.g. Beckhoff
+        self._data_sources_mapping = {
+            k: ds.data_source if hasattr(ds, 'data_source') else ds for k, ds in data_sources_mapping.items()
+        }
+        self._data_outputs_mapping = {
+            k: do.data_output if hasattr(do, 'data_output') else do for k, do in data_outputs_mapping.items()
+        }
+        # Generate list of data sources and outputs
         self._data_sources = list(self._data_sources_mapping.values())
-
-        # Extract all data outputs to a list (of instance(s))
         self._data_outputs = list(self._data_outputs_mapping.values())
+
+        self._data_source_prefix_delimiter = data_source_prefix_delimiter
+
+        # All variable names from all data sources
+        if self._data_source_prefix_delimiter is None:
+            data_sources_all_variable_names = tuple(item for ds in self._data_sources for item in ds.all_variable_names)
+        else:
+            data_sources_all_variable_names = tuple(
+                f'{k}{self._data_source_prefix_delimiter}{item}'
+                for k, ds in self._data_sources_mapping.items()
+                for item in ds.all_variable_names
+            )
+
+        # Set all_variable_names for each DataOutput
+        for data_output in self._data_outputs:
+            if data_output.log_time_required:
+                data_output.all_variable_names = (data_output.key_of_log_time,) + data_sources_all_variable_names
+            else:
+                data_output.all_variable_names = data_sources_all_variable_names
+
+        # Methods for DataOutput that must be initialed
+        for data_output in self._data_outputs:
+            # Csv output
+            if isinstance(data_output, DataOutput.DataOutputCsv):
+                data_output.write_header_line()
+            else:
+                pass
+
+    def read_data_all_sources(self) -> dict:
+        """Read data from all data sources"""
+        if self._data_source_prefix_delimiter is None:
+            return {k: v for ds in self._data_sources for k, v in ds.read_data().items()}
+        else:
+            return {
+                f'{k_ds}{self._data_source_prefix_delimiter}{k}': v
+                for k_ds, ds in self._data_sources_mapping.items()
+                for k, v in ds.read_data().items()
+            }
 
     @abstractmethod
     def run_data_logging(self, **kwargs):
@@ -71,9 +114,11 @@ class DataLoggerTimeTrigger(DataLoggerBase):
             self,
             data_sources_mapping: dict[str: DataSource.DataSourceBase],
             data_outputs_mapping: dict[str: DataOutput.DataOutputBase],
+            data_source_prefix_delimiter: str | None = None
     ):
+        """Time triggerd data logger"""
         logger.info("Initializing DataLoggerTimeTrigger ...")
-        super().__init__(data_sources_mapping, data_outputs_mapping)
+        super().__init__(data_sources_mapping, data_outputs_mapping, data_source_prefix_delimiter)
 
     def run_data_logging(self, interval: int | float, duration: int | float | None):
         """
@@ -106,9 +151,11 @@ class DataLoggerTimeTrigger(DataLoggerBase):
                 # Update next logging time
                 next_log_time += interval
 
-                # Get timestamp and data from all sources, using 'read_data()' method
+                # Get timestamp
                 timestamp = self.get_timestamp_now()
-                row = [v for source in self._data_sources for v in source.read_data()]
+
+                # Get data from all sources
+                data = self.read_data_all_sources()
 
                 # Log count
                 log_count += 1  # Update log counter
@@ -116,16 +163,12 @@ class DataLoggerTimeTrigger(DataLoggerBase):
 
                 # Log data to each output
                 for data_output in self._data_outputs:
-                    if hasattr(data_output, 'data_output'):
-                        data_output = data_output.data_output  # For instance with nested class, e.g. Beckhoff
-                    if data_output.time_in_header:
+                    if data_output.log_time_required:
                         # Add timestamp to data
-                        row_to_log = self._add_timestamp_to_row(timestamp, row)  # Add timestamp to data
-                    else:
-                        row_to_log = row
+                        data[data_output.key_of_log_time] = timestamp  # Add timestamp to data
                     # Log data, using 'log_data()' method
-                    logger.debug(f"Logging data: {row_to_log} to {data_output}")
-                    data_output.check_and_log_data(row_to_log)  # Log to all outputs
+                    logger.debug(f"Logging data: {data} to {data_output}")
+                    data_output.log_data(data)  # Log to output
 
                 # Calculate the time to sleep to maintain the interval
                 sleep_time = next_log_time - time.time()
@@ -145,22 +188,17 @@ class DataLoggerTimeTrigger(DataLoggerBase):
         """Get the timestamp by now"""
         return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
 
-    @staticmethod
-    def _add_timestamp_to_row(timestamp: str, row: list) -> list:
-        """Add timestamp to row"""
-        return [timestamp] + row
-
 
 if __name__ == "__main__":
-    data_source_1 = DataSource.RandomDataSource(size=5, missing_rate=0.5)
-    data_source_2 = DataSource.RandomStringSource(size=5, str_length=5)
-    data_output_1 = DataOutput.DataOutputCsv(file_name='Test/csv_logger_1.csv',
-                                             all_variable_names=data_source_1.all_variable_names + data_source_2.all_variable_names)
-    data_output_2 = DataOutput.DataOutputCsv(file_name='Test/csv_logger_2.csv',
-                                             all_variable_names=data_source_1.all_variable_names + data_source_2.all_variable_names,
-                                             csv_writer_settings={'delimiter': '\t'})
+    # Init data sources
+    data_source_1 = DataSource.RandomDataSource(size=5, key_missing_rate=0, value_missing_rate=0.5)
+    data_source_2 = DataSource.RandomStringSource(size=5, str_length=5, key_missing_rate=0.5, value_missing_rate=0.5)
 
-    test_logger = DataLoggerTimeTrigger(
+    # Init outputs
+    data_output_1 = DataOutput.DataOutputCsv(file_name='Test/csv_logger_1.csv')
+    data_output_2 = DataOutput.DataOutputCsv(file_name='Test/csv_logger_2.csv', csv_writer_settings={'delimiter': '\t'})
+
+    data_logger = DataLoggerTimeTrigger(
         data_sources_mapping={
             'Sou1': data_source_1,
             'Sou2': data_source_2,
@@ -168,11 +206,12 @@ if __name__ == "__main__":
         data_outputs_mapping={
             'Log1': data_output_1,
             'Log2': data_output_2,
-        }
+        },
+        data_source_prefix_delimiter='_'
     )
-    print(test_logger.data_sources)
-    print(test_logger.data_outputs)
-    test_logger.run_data_logging(
+    print(f"Data source(s): {data_logger.data_sources}")
+    print(f"Data output(s): {data_logger.data_outputs}")
+    data_logger.run_data_logging(
         interval=2,
         duration=10
     )

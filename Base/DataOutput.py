@@ -18,10 +18,10 @@ class DataOutputBase(ABC):
     # Class attribute: key's name for the logged time
     key_of_log_time = 'LogTime'
 
-    def __init__(self, all_variable_names: tuple[str, ...], log_time_required: bool):
+    def __init__(self, log_time_required: bool):
         # Internal variable for property 'all_variable_names'
         # It should be defined by a DataLogger instance
-        self._all_variable_names: tuple[str, ...] = all_variable_names
+        self._all_variable_names: tuple[str, ...] = ()
 
         # Internal variable for property 'log_time_required'
         # It should be defined during the initialization
@@ -53,6 +53,10 @@ class DataOutputBase(ABC):
         """
         return self._all_variable_names
 
+    @all_variable_names.setter
+    def all_variable_names(self, names: tuple[str, ...]):
+        self._all_variable_names = names
+
     @property
     def log_time_required(self) -> bool:
         """If this data output requires log time by data logging"""
@@ -67,18 +71,16 @@ class DataOutputCsv(DataOutputBase):
     def __init__(
             self,
             file_name: str,
-            all_variable_names: tuple[str, ...],
             csv_writer_settings: dict | None = None
     ):
         """
         Initialize data output instance for csv data
         :param file_name: File name to save csv data with full path
-        :param all_variable_names: Data names from all sources
         :param csv_writer_settings: Settings of csv writer, supported keys: 'delimiter', if None, use default settings
         """
         logger.info("Initializing DataOutputCsv ...")
 
-        super().__init__(all_variable_names, log_time_required=True)  # csv file always requires log time
+        super().__init__(log_time_required=True)  # csv file always requires log time
         self.file_name = file_name
         self.generate_dir_of_file(self.file_name)  # Generate file path if not exists
 
@@ -100,16 +102,13 @@ class DataOutputCsv(DataOutputBase):
             self.csv_writer_settings.update(csv_writer_settings)
             logger.info(f"Using csv writer settings: {self.csv_writer_settings}")
 
-        # Write header line to csv
-        self._write_header_line()
-
     def log_data(self, data: dict):
         """Log data to csv"""
         # Create a data dictionary based on the order of all variable names
-        reordered_data = {key: data.get(k, None) for k in self._all_variable_names}
+        reordered_data = {k: data.get(k, None) for k in self._all_variable_names}
         self._append_to_csv(list(reordered_data.values()))  # Append data to csv
 
-    def _write_header_line(self):
+    def write_header_line(self):
         """Write header line as the first row of csv"""
         self._write_to_csv(list(self._all_variable_names))
 

@@ -87,7 +87,7 @@ class AdsDataSourceOutput:
     class AdsDataOutput(DataOutput.DataOutputBase):
         """Inner class for data output"""
         def __init__(self, plc: pyads.Connection, all_data_names: list[str]):
-            super().__init__(all_variable_names=all_data_names, log_time_required=False)  # Without time header
+            super().__init__(log_time_required=False)  # Without time header
             self.plc = plc  # Instance of plc in main class
 
         def log_data(self, data: list):
@@ -211,6 +211,7 @@ class AdsDataSourceOutput:
         _ads_state_int, _device_state_int = self.plc.read_state()
         return self._ads_states.get(_ads_state_int), self._ads_return_codes.get(_device_state_int)
 
+    # TODO: put it in inner class
     def read_data(self) -> list | None:
         """Read data from PLC"""
         if isinstance(self._data_source, self.AdsDataSource):
@@ -222,6 +223,7 @@ class AdsDataSourceOutput:
         else:
             raise AttributeError("No data source exists, please check the initialization")
 
+    # TODO: put it in inner class
     def log_data(self, row: list):
         """Log data to PLC"""
         if isinstance(self._data_output, self.AdsDataOutput):
@@ -262,8 +264,7 @@ if __name__ == '__main__':
     )
 
     # Init csv output
-    csv_output = DataOutput.DataOutputCsv(file_name=os.path.join('Test', 'csv_logger.csv'),
-                                          all_variable_names=ads_source_output.data_source.all_variable_names)
+    csv_output = DataOutput.DataOutputCsv(file_name=os.path.join('Test', 'csv_logger.csv'))
 
     # Init random source
     random_source = DataSource.RandomDataSource(size=2, missing_rate=0.5)
