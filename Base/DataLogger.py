@@ -156,11 +156,11 @@ if __name__ == "__main__":
     data_source_2 = DataSource.RandomStringSource(size=5, str_length=5)
     data_output_1 = DataOutput.DataOutputCsv(
         file_name='Test/csv_logger_1.csv',
-        all_data_names=data_source_1.all_data_names + data_source_2.all_data_names,
+        all_data_names=data_source_1.all_variable_names + data_source_2.all_variable_names,
     )
     data_output_2 = DataOutput.DataOutputCsv(
         file_name='Test/csv_logger_2.csv',
-        all_data_names=data_source_1.all_data_names + data_source_2.all_data_names,
+        all_data_names=data_source_1.all_variable_names + data_source_2.all_variable_names,
         csv_writer_settings={'delimiter': '\t'}
     )
 

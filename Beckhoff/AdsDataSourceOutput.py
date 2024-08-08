@@ -264,7 +264,7 @@ if __name__ == '__main__':
     # Init csv output
     csv_output = DataOutput.DataOutputCsv(
         file_name=os.path.join('Test', 'csv_logger.csv'),
-        all_data_names=ads_source_output.data_source.all_data_names
+        all_data_names=ads_source_output.data_source.all_variable_names
     )
 
     # Init random source

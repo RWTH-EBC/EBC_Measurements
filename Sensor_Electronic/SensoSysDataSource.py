@@ -336,12 +336,12 @@ if __name__ == '__main__':
         sensosys_config_file=r'_config/SensoSysConfigs_default.json' if CONFIG_FROM_FILE else None,
         output_dir='Test'
     )
-    print(f"All data names of senso_sys_source: {senso_sys_source.all_data_names}")
+    print(f"All data names of senso_sys_source: {senso_sys_source.all_variable_names}")
 
     # Init csv output
     csv_output = DataOutput.DataOutputCsv(
         file_name='Test/csv_logger.csv',
-        all_data_names=senso_sys_source.all_data_names
+        all_data_names=senso_sys_source.all_variable_names
     )
 
     # Init DataLogger
