@@ -339,10 +339,8 @@ if __name__ == '__main__':
     print(f"All data names of senso_sys_source: {senso_sys_source.all_variable_names}")
 
     # Init csv output
-    csv_output = DataOutput.DataOutputCsv(
-        file_name='Test/csv_logger.csv',
-        all_data_names=senso_sys_source.all_variable_names
-    )
+    csv_output = DataOutput.DataOutputCsv(file_name='Test/csv_logger.csv',
+                                          all_variable_names=senso_sys_source.all_variable_names)
 
     # Init DataLogger
     time_logger = DataLogger.DataLoggerTimeTrigger(

@@ -1,10 +1,7 @@
 """
 Module Data Output
 
-Data output module must take responsibility to check if the data length is same as the headers' length, in order to
-avoid an invalid data logging.
-
-Headers will be directly provided from instance itself. They should be immutable.
+Data output module will always receive data in type 'dict' from data logger, with keys of variable names.
 """
 
 from abc import ABC, abstractmethod
@@ -18,43 +15,26 @@ logger = logging.getLogger('DataOutput')
 
 
 class DataOutputBase(ABC):
-    def __init__(self, all_data_names: list[str], time_in_header: bool):
-        # Internal variable for all_data_names, achieved by combine the sources' property 'all_data_name'
-        self._all_data_names = all_data_names
-        # Set if 'Time' be added to headers
-        self._time_in_header = time_in_header
-        # Generate the header
-        self._headers = self._generate_headers()  # Internal variable for headers
-        self._length_headers = len(self._headers)
+    # Class attribute: key's name for the logged time
+    key_of_log_time = 'LogTime'
 
-    def _generate_headers(self) -> list[str]:
-        """Generate header of output"""
-        if self._time_in_header:
-            return ['Time'] + self._all_data_names
-        else:
-            return self._all_data_names
+    def __init__(self, all_variable_names: tuple[str, ...], log_time_required: bool):
+        # Internal variable for property 'all_variable_names'
+        # It should be defined by a DataLogger instance
+        self._all_variable_names: tuple[str, ...] = all_variable_names
+
+        # Internal variable for property 'log_time_required'
+        # It should be defined during the initialization
+        self._log_time_required = log_time_required
 
     @abstractmethod
-    def _log_data(self, row: list):
-        """Log data to output, this method will be used in DataLogger"""
+    def log_data(self, data: dict):
+        """
+        Log data to output
+
+        This method must be implemented in child class and will be used by the DataLogger to log data to the output
+        """
         pass
-
-    def check_and_log_data(self, row: list) -> bool:
-        """
-        Check data length and log data by same length, skip logging by different lengths
-        :return: True for successful logging, False for failed logging
-        """
-        if self._check_data_length(row):  # Check data length
-            self._log_data(row)
-            return True
-        else:
-            logger.error(f"Mismatched data length = {len(row)} and length of headers = {self._length_headers}, "
-                         f"skipping logging ...")
-            return False
-
-    def _check_data_length(self, row: list) -> bool:
-        """Check if the data length same as the length of data names"""
-        return len(row) == self._length_headers
 
     @staticmethod
     def generate_dir_of_file(file_name: str):
@@ -64,12 +44,19 @@ class DataOutputBase(ABC):
             os.makedirs(dir_path)
 
     @property
-    def time_in_header(self):
-        return self._time_in_header
+    def all_variable_names(self) -> tuple[str, ...]:
+        """
+        All possible variable names of this data output
+
+        This property returns a tuple containing the names of all variables that this data output can potentially
+        contain.
+        """
+        return self._all_variable_names
 
     @property
-    def headers(self):
-        return self._headers
+    def log_time_required(self) -> bool:
+        """If this data output requires log time by data logging"""
+        return self._log_time_required
 
 
 class DataOutputCsv(DataOutputBase):
@@ -77,31 +64,28 @@ class DataOutputCsv(DataOutputBase):
         """Typed dict for csv writer settings"""
         delimiter: str
 
-    # Class attribute: Default setting of csv writer
-    _csv_writer_settings_default: 'DataOutputCsv.CsvWriterSettings' = {
-        'delimiter': ';'  # Delimiter of csv-file
-    }
-
     def __init__(
             self,
             file_name: str,
-            all_data_names: list[str],
-            csv_writer_settings: dict[str: str] | None = None
+            all_variable_names: tuple[str, ...],
+            csv_writer_settings: dict | None = None
     ):
         """
         Initialize data output instance for csv data
         :param file_name: File name to save csv data with full path
-        :param all_data_names: Data names from all sources
+        :param all_variable_names: Data names from all sources
         :param csv_writer_settings: Settings of csv writer, supported keys: 'delimiter', if None, use default settings
         """
         logger.info("Initializing DataOutputCsv ...")
 
-        super().__init__(all_data_names=all_data_names, time_in_header=True)  # csv file always needs 'Time' in header
+        super().__init__(all_variable_names, log_time_required=True)  # csv file always requires log time
         self.file_name = file_name
         self.generate_dir_of_file(self.file_name)  # Generate file path if not exists
 
-        # Get default csv_writer_settings
-        self.csv_writer_settings = self._csv_writer_settings_default.copy()  # Use copy() to avoid change cls attribute
+        # Set default csv_writer_settings
+        self.csv_writer_settings: 'DataOutputCsv.CsvWriterSettings' = {
+            'delimiter': ';'  # Delimiter of csv-file
+        }
 
         # Set csv_writer_settings
         if csv_writer_settings is None:
@@ -110,22 +94,24 @@ class DataOutputCsv(DataOutputBase):
         else:
             # Check all keys in csv_writer_settings
             for key in csv_writer_settings.keys():
-                if key not in self._csv_writer_settings_default.keys():
+                if key not in self.csv_writer_settings.keys():
                     raise ValueError(f"Invalid key in csv_writer_settings: '{key}'")
             # Update csv_writer_settings
             self.csv_writer_settings.update(csv_writer_settings)
             logger.info(f"Using csv writer settings: {self.csv_writer_settings}")
 
-        # Write headers to csv
-        self._write_csv_header(self._headers)
+        # Write header line to csv
+        self._write_header_line()
 
-    def _log_data(self, row: list):
+    def log_data(self, data: dict):
         """Log data to csv"""
-        self._append_to_csv(row)  # Append data to csv
+        # Create a data dictionary based on the order of all variable names
+        reordered_data = {key: data.get(k, None) for k in self._all_variable_names}
+        self._append_to_csv(list(reordered_data.values()))  # Append data to csv
 
-    def _write_csv_header(self, row: list):
-        """Write header as the first row of csv, this will erase the file"""
-        self._write_to_csv(row)
+    def _write_header_line(self):
+        """Write header line as the first row of csv"""
+        self._write_to_csv(list(self._all_variable_names))
 
     def _write_to_csv(self, row: list):
         """Write a csv, the existing content in the file is erased as soon as the file is opened"""
@@ -138,7 +124,3 @@ class DataOutputCsv(DataOutputBase):
         with open(self.file_name, 'a', newline='') as f:
             csv_writer = csv.writer(f, **self.csv_writer_settings)
             csv_writer.writerow(row)
-
-    @property
-    def csv_writer_settings_default(self):
-        return self._csv_writer_settings_default

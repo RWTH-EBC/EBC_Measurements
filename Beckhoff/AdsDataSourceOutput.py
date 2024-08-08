@@ -87,10 +87,10 @@ class AdsDataSourceOutput:
     class AdsDataOutput(DataOutput.DataOutputBase):
         """Inner class for data output"""
         def __init__(self, plc: pyads.Connection, all_data_names: list[str]):
-            super().__init__(all_data_names=all_data_names, time_in_header=False)  # Without time header
+            super().__init__(all_variable_names=all_data_names, log_time_required=False)  # Without time header
             self.plc = plc  # Instance of plc in main class
 
-        def _log_data(self, row: list):
+        def log_data(self, data: list):
             """Log data"""
             def clean_keys_with_none_values(input_dict: dict) -> dict:
                 """Clean keys that have none values"""
@@ -101,7 +101,7 @@ class AdsDataSourceOutput:
                         del input_dict[_k]
                 return input_dict
 
-            write_dict = dict(zip(self._headers, row))  # Zip headers with data
+            write_dict = dict(zip(self._headers, data))  # Zip headers with data
             write_dict_cleaned = clean_keys_with_none_values(write_dict)  # Clean none values
             if len(write_dict_cleaned) > 0:
                 self.plc.write_list_by_name(write_dict_cleaned)
@@ -262,10 +262,8 @@ if __name__ == '__main__':
     )
 
     # Init csv output
-    csv_output = DataOutput.DataOutputCsv(
-        file_name=os.path.join('Test', 'csv_logger.csv'),
-        all_data_names=ads_source_output.data_source.all_variable_names
-    )
+    csv_output = DataOutput.DataOutputCsv(file_name=os.path.join('Test', 'csv_logger.csv'),
+                                          all_variable_names=ads_source_output.data_source.all_variable_names)
 
     # Init random source
     random_source = DataSource.RandomDataSource(size=2, missing_rate=0.5)
