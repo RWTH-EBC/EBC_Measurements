@@ -46,7 +46,7 @@ class SensoSysDataSource(DataSource.DataSourceBase):
         if self.output_dir is None:
             logger.info(f"No output dir set, results of initialization will not be saved")
         else:
-            logger.info(f"Results of initialization will be saved to {self.output_dir}")
+            logger.info(f"Results of initialization will be saved to: {self.output_dir}")
             if not os.path.exists(self.output_dir):
                 os.makedirs(self.output_dir)
 
@@ -64,10 +64,8 @@ class SensoSysDataSource(DataSource.DataSourceBase):
         if self.sensosys_config_file is None:
             # Configuration by guide
             _succeed = self._get_sensosys_configs_by_guide()
-            if _succeed:
-                logger.info(f"Succeeded to update SensoSys configurations by user guide")
-            else:
-                logger.warning(f"Failed to update SensoSys configurations by user guide, using default values ...")
+            assert _succeed  # Configuration by guide will always return True
+            logger.info(f"Succeeded to update SensoSys configurations by user guide")
         else:
             # Configuration by file
             _succeed = self._get_sensosys_configs_by_file(self.sensosys_config_file)
@@ -113,7 +111,7 @@ class SensoSysDataSource(DataSource.DataSourceBase):
             (k, v['instrument_name'], v.get('sensor_config')) for k, v in self.sensosys_devices.items()]
 
         # Set all_data_names
-        self._all_data_names = self._get_all_data_names()
+        self._all_variable_names = self._get_all_variable_names()
 
     def _get_sensosys_configs_by_guide(self) -> bool:
         """Get SensoSys configurations by a user guide"""
@@ -223,49 +221,55 @@ class SensoSysDataSource(DataSource.DataSourceBase):
                 available_devices.update({str(_id): device_responses})
         return available_devices
 
-    def _get_all_data_names(self) -> list:
+    def _get_all_variable_names(self) -> tuple[str, ...]:
         """Get all measurement parameters for instruments that found"""
-        names = []
+        names = ()
         for _id, _name, _sensor_config in self.sensosys_devices_list:
             if _name.startswith('ANEMO'):
-                names = names + [f't_a_{_id}', f'v_{_id}', f'vstar_{_id}']
+                names += (f't_a_{_id}', f'v_{_id}', f'vstar_{_id}')
             elif _name.startswith('THERM'):
-                names = names + [f't_a_{_id}', f't_g_{_id}', f't_w_{_id}', f't_s_{_id}']
+                names += (f't_a_{_id}', f't_g_{_id}', f't_w_{_id}', f't_s_{_id}')
             elif _name.startswith('HYGRO'):
-                names = names + [
-                    f'{p}_{_id}' for p in self.sensosys.senso_hygbar_sensor_config[_sensor_config]['params']]
+                names += tuple(f'{p}_{_id}' for p in self.sensosys.senso_hygbar_sensor_config[_sensor_config]['params'])
             else:
                 raise ValueError(f"Invalid instrument name '{_name}'")
         return names
 
-    def read_data(self) -> list:
+    def read_data(self) -> dict:
         """Read all measurement data for instruments that found"""
-        data = []
+        data = {}
         for _id, _name, _sensor_config in self.sensosys_devices_list:
             _id = int(_id)  # Convert str id to int
             if _name.startswith('ANEMO'):
                 resp = self.sensosys.senso_anemo_read_measurement_data(_id)
                 if resp is None:
                     logger.warning(f"No data received from {_id} - {_name} ...")
-                    data = data + [None, None, None]
                 else:
-                    data = data + [resp.get('t_a'), resp.get('v'), resp.get('v_star')]
+                    data.update({
+                        f't_a_{_id}': resp.get('t_a'),
+                        f'v_{_id}': resp.get('v'),
+                        f'vstar_{_id}': resp.get('v_star'),
+                    })
             elif _name.startswith('THERM'):
                 resp = self.sensosys.senso_therm_read_temperatures_enabled_channels(_id)
                 if resp is None:
                     logger.warning(f"No data received from {_id} - {_name} ...")
-                    data = data + [None, None, None, None]
                 else:
-                    data = data + [resp.get('t_a'), resp.get('t_g'), resp.get('t_w'), resp.get('t_s')]
+                    data.update({
+                        f't_a_{_id}': resp.get('t_a'),
+                        f't_g_{_id}': resp.get('t_g'),
+                        f't_w_{_id}': resp.get('t_w'),
+                        f't_s_{_id}': resp.get('t_s'),
+                    })
             elif _name.startswith('HYGRO'):
                 resp = self.sensosys.senso_hygbar_read_measurement_data(_id, _sensor_config)
                 if resp is None:
                     logger.warning(f"No data received from {_id} - {_name} ...")
-                    data = data + [
-                        None for _ in range(len(self.sensosys.senso_hygbar_sensor_config[_sensor_config]['params']))]
                 else:
-                    data = data + [
-                        resp.get(p) for p in self.sensosys.senso_hygbar_sensor_config[_sensor_config]['params']]
+                    data.update({
+                        f'{p}_{_id}': resp.get(p)
+                        for p in self.sensosys.senso_hygbar_sensor_config[_sensor_config]['params']
+                    })
             else:
                 raise ValueError(f"Invalid instrument name '{_name}'")
         return data
