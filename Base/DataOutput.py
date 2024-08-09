@@ -20,7 +20,7 @@ class DataOutputBase(ABC):
 
     def __init__(self, log_time_required: bool):
         # Internal variable for property 'all_variable_names'
-        # It should be defined by a DataLogger instance
+        # It should be set by a DataLogger instance via property setter
         self._all_variable_names: tuple[str, ...] = ()
 
         # Internal variable for property 'log_time_required'
@@ -109,7 +109,7 @@ class DataOutputCsv(DataOutputBase):
         self._append_to_csv(list(reordered_data.values()))  # Append data to csv
 
     def write_header_line(self):
-        """Write header line as the first row of csv"""
+        """Write header line as the first row of csv, this method must be called by initializing DataLogger"""
         self._write_to_csv(list(self._all_variable_names))
 
     def _write_to_csv(self, row: list):

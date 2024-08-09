@@ -51,10 +51,12 @@ class DataLoggerBase(ABC):
 
         self._data_source_prefix_delimiter = data_source_prefix_delimiter
 
-        # All variable names from all data sources
+        # All variable names from all data sources, this will be set to DataOutput
         if self._data_source_prefix_delimiter is None:
+            # Without prefix
             data_sources_all_variable_names = tuple(item for ds in self._data_sources for item in ds.all_variable_names)
         else:
+            # With prefix
             data_sources_all_variable_names = tuple(
                 f'{k}{self._data_source_prefix_delimiter}{item}'
                 for k, ds in self._data_sources_mapping.items()
@@ -64,14 +66,17 @@ class DataLoggerBase(ABC):
         # Set all_variable_names for each DataOutput
         for data_output in self._data_outputs:
             if data_output.log_time_required:
+                # With key of log time
                 data_output.all_variable_names = (data_output.key_of_log_time,) + data_sources_all_variable_names
             else:
+                # Without key of log time, only all variable names
                 data_output.all_variable_names = data_sources_all_variable_names
 
-        # Methods for DataOutput that must be initialed
+        # Additional methods for DataOutput that must be initialed
         for data_output in self._data_outputs:
             # Csv output
             if isinstance(data_output, DataOutput.DataOutputCsv):
+                # Write csv header line
                 data_output.write_header_line()
             else:
                 pass
@@ -79,13 +84,27 @@ class DataLoggerBase(ABC):
     def read_data_all_sources(self) -> dict:
         """Read data from all data sources"""
         if self._data_source_prefix_delimiter is None:
+            # Without prefix
             return {k: v for ds in self._data_sources for k, v in ds.read_data().items()}
         else:
+            # With prefix
             return {
                 f'{k_ds}{self._data_source_prefix_delimiter}{k}': v
                 for k_ds, ds in self._data_sources_mapping.items()
                 for k, v in ds.read_data().items()
             }
+
+    def log_data_all_outputs(self, data: dict, timestamp: str = None):
+        """Log data to all data outputs"""
+        for data_output in self._data_outputs:
+            if data_output.log_time_required and timestamp is not None:
+                # Add timestamp to data
+                data[data_output.key_of_log_time] = timestamp
+            else:
+                raise ValueError(f"The data output '{data_output}' requires timestamp but got None")
+            # Log data to this output
+            logger.debug(f"Logging data: {data} to {data_output}")
+            data_output.log_data(data)  # Log to output
 
     @abstractmethod
     def run_data_logging(self, **kwargs):
@@ -162,13 +181,7 @@ class DataLoggerTimeTrigger(DataLoggerBase):
                 print(f"Logging count(s): {log_count}")  # Print log counter to console
 
                 # Log data to each output
-                for data_output in self._data_outputs:
-                    if data_output.log_time_required:
-                        # Add timestamp to data
-                        data[data_output.key_of_log_time] = timestamp  # Add timestamp to data
-                    # Log data, using 'log_data()' method
-                    logger.debug(f"Logging data: {data} to {data_output}")
-                    data_output.log_data(data)  # Log to output
+                self.log_data_all_outputs(data, timestamp)
 
                 # Calculate the time to sleep to maintain the interval
                 sleep_time = next_log_time - time.time()
