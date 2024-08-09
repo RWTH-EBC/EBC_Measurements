@@ -16,7 +16,7 @@ class DataLoggerBase(ABC):
             self,
             data_sources_mapping: dict[str: DataSource.DataSourceBase],
             data_outputs_mapping: dict[str: DataOutput.DataOutputBase],
-            data_source_prefix_delimiter: str | None = None
+            data_rename_mapping: dict[str: dict[str: dict[str: str]]] | None = None,
     ):
         """
         Initialize data logger instance
@@ -25,18 +25,45 @@ class DataLoggerBase(ABC):
         {
             '<source1_name>': instance1 of DataSource,
             '<source2_name>': instance2 of DataSource,
+            ...
         }
 
         The format of data_outputs_mapping is as follows:
         {
             '<output1_name>': instance1 of class DataOutput,
             '<output2_name>': instance2 of class DataOutput,
+            ...
+        }
+
+        The format of data_rename_mapping is as follows:
+        {
+            '<source1_name>': {
+                <'output1_name'>: {
+                    <variable_name_in_source1>: <new_variable_name_in_output1>,
+                    ...
+                },
+                <'output2_name'>: {
+                    <variable_name_in_source1>: <new_variable_name_in_output2>,
+                    ...
+                },
+            },
+            '<source2_name>': {
+                <'output1_name'>: {
+                    <variable_name_in_source2>: <new_variable_name_in_output1>,
+                    ...
+                },
+                <'output2_name'>: {
+                    <variable_name_in_source2>: <new_variable_name_in_output2>,
+                    ...
+                },
+            },
+            ...
         }
 
         :param data_sources_mapping: Mapping of multiple data sources
         :param data_outputs_mapping: Mapping of multiple data outputs
-        :param data_source_prefix_delimiter: If not None, source name will be added as prefix to variable names for
-        each output, prefix separated from the variable name with the here defined delimiter
+        :param data_rename_mapping: Mapping of rename for data sources and data outputs, None to use default names
+            provided by data sources
         """
         # Extract all data sources and outputs to dict (values as instance(s)), also for nested class, e.g. Beckhoff
         self._data_sources_mapping = {
@@ -47,66 +74,112 @@ class DataLoggerBase(ABC):
             k: do.data_output if isinstance(do, DataSourceOutput.DataSourceOutputBase) else do
             for k, do in data_outputs_mapping.items()
         }
-        # Generate list of data sources and outputs
-        self._data_sources = list(self._data_sources_mapping.values())
-        self._data_outputs = list(self._data_outputs_mapping.values())
 
-        self._data_source_prefix_delimiter = data_source_prefix_delimiter
+        # Check rename mapping of data sources and outputs
+        if data_rename_mapping is None:
+            self._data_rename_mapping = None
+        else:
+            # Check data source name
+            for ds_name, output_dict in data_rename_mapping.items():
+                if ds_name in self._data_sources_mapping.keys():
+                    # Check data output name
+                    for do_name, mapping in output_dict.items():
+                        if do_name in self._data_outputs_mapping.keys():
+                            # Check mapping keys
+                            for key in mapping.keys():
+                                if key not in self._data_sources_mapping[ds_name].all_variable_names:
+                                    raise ValueError(f"Invalid variable name '{key}' for data source '{ds_name}' data "
+                                                     f"output '{do_name}' for rename mapping")
+                        else:
+                            raise ValueError(f"Invalid data output name '{do_name}' for rename mapping")
+                else:
+                    raise ValueError(f"Invalid data source name '{ds_name}' for rename mapping")
+            # Checking complete
+            self._data_rename_mapping = data_rename_mapping
+            logger.info(f"Data rename activated, using mapping: \n{self._data_rename_mapping}")
 
         # All variable names from all data sources, this will be set to DataOutput
-        if self._data_source_prefix_delimiter is None:
-            # Without prefix
-            data_sources_all_variable_names = tuple(item for ds in self._data_sources for item in ds.all_variable_names)
+        if self._data_rename_mapping is None:
+            # Without rename
+            self._all_variable_names_dict = {
+                ds_name: {
+                    do_name: tuple(ds.all_variable_names)  # Origin names without rename
+                    for do_name in self._data_outputs_mapping.keys()
+                }
+                for ds_name, ds in self._data_sources_mapping.items()
+            }
         else:
-            # With prefix
-            data_sources_all_variable_names = tuple(
-                f'{k}{self._data_source_prefix_delimiter}{item}'
-                for k, ds in self._data_sources_mapping.items()
-                for item in ds.all_variable_names
-            )
+            # With rename
+            self._all_variable_names_dict = {
+                ds_name: {
+                    do_name: tuple(
+                        self._data_rename_mapping.get(ds_name, {}).get(do_name, {}).get(var, var)  # Rename
+                        for var in ds.all_variable_names
+                    )
+                    for do_name in self._data_outputs_mapping.keys()
+                }
+                for ds_name, ds in self._data_sources_mapping.items()
+            }
 
         # Set all_variable_names for each DataOutput
-        for data_output in self._data_outputs:
-            if data_output.log_time_required:
+        for do_name, do in self._data_outputs_mapping.items():
+            # Collect variable names from all data sources for the current output
+            all_data_sources_all_variable_names = tuple(
+                var_name
+                for ds_name in self._data_sources_mapping.keys()
+                for var_name in self._all_variable_names_dict[ds_name][do_name]
+            )
+
+            if do.log_time_required:
                 # With key of log time
-                data_output.all_variable_names = (data_output.key_of_log_time,) + data_sources_all_variable_names
+                do.all_variable_names = (do.key_of_log_time,) + all_data_sources_all_variable_names
             else:
                 # Without key of log time, only all variable names
-                data_output.all_variable_names = data_sources_all_variable_names
+                do.all_variable_names = all_data_sources_all_variable_names
 
         # Additional methods for DataOutput that must be initialed
-        for data_output in self._data_outputs:
+        for do in self._data_outputs_mapping.values():
             # Csv output
-            if isinstance(data_output, DataOutput.DataOutputCsv):
+            if isinstance(do, DataOutput.DataOutputCsv):
                 # Write csv header line
-                data_output.write_header_line()
+                do.write_header_line()
             else:
                 pass
 
-    def read_data_all_sources(self) -> dict:
+    def read_data_all_sources(self) -> dict[str: dict]:
         """Read data from all data sources"""
-        if self._data_source_prefix_delimiter is None:
-            # Without prefix
-            return {k: v for ds in self._data_sources for k, v in ds.read_data().items()}
-        else:
-            # With prefix
-            return {
-                f'{k_ds}{self._data_source_prefix_delimiter}{k}': v
-                for k_ds, ds in self._data_sources_mapping.items()
-                for k, v in ds.read_data().items()
-            }
+        return {
+            ds_name: ds.read_data()
+            for ds_name, ds in self._data_sources_mapping.items()
+        }
 
-    def log_data_all_outputs(self, data: dict, timestamp: str = None):
+    def log_data_all_outputs(self, data: dict[str: dict], timestamp: str = None):
         """Log data to all data outputs"""
-        for data_output in self._data_outputs:
-            if data_output.log_time_required and timestamp is not None:
-                # Add timestamp to data
-                data[data_output.key_of_log_time] = timestamp
+        for do_name, do in self._data_outputs_mapping.items():
+            # Unzip and rename key for the current output
+            if self._data_rename_mapping is None:
+                unzipped_data = {
+                    var: value
+                    for ds_name, ds_data in data.items()
+                    for var, value in ds_data.items()
+                }
             else:
-                raise ValueError(f"The data output '{data_output}' requires timestamp but got None")
+                unzipped_data = {
+                    self._data_rename_mapping.get(ds_name, {}).get(do_name, {}).get(var, var): value
+                    for ds_name, ds_data in data.items()
+                    for var, value in ds_data.items()
+                }
+            # Add log time as settings
+            if do.log_time_required:
+                # This data output requires log time
+                if timestamp is None:
+                    raise ValueError(f"The data output '{do}' requires timestamp but got None")
+                else:
+                    # Add timestamp to data
+                    unzipped_data[do.key_of_log_time] = timestamp
             # Log data to this output
-            logger.debug(f"Logging data: {data} to {data_output}")
-            data_output.log_data(data)  # Log to output
+            logger.debug(f"Logging data: {unzipped_data} to {do}")
+            do.log_data(unzipped_data)  # Log to output
 
     @abstractmethod
     def run_data_logging(self, **kwargs):
@@ -118,16 +191,8 @@ class DataLoggerBase(ABC):
         return self._data_sources_mapping
 
     @property
-    def data_sources(self) -> list:
-        return self._data_sources
-
-    @property
     def data_outputs_mapping(self) -> dict:
         return self._data_outputs_mapping
-
-    @property
-    def data_outputs(self) -> list:
-        return self._data_outputs
 
 
 class DataLoggerTimeTrigger(DataLoggerBase):
@@ -135,11 +200,11 @@ class DataLoggerTimeTrigger(DataLoggerBase):
             self,
             data_sources_mapping: dict[str: DataSource.DataSourceBase],
             data_outputs_mapping: dict[str: DataOutput.DataOutputBase],
-            data_source_prefix_delimiter: str | None = None
+            data_rename_mapping: dict[str: dict[str: dict[str: str]]] | None = None,
     ):
         """Time triggerd data logger"""
         logger.info("Initializing DataLoggerTimeTrigger ...")
-        super().__init__(data_sources_mapping, data_outputs_mapping, data_source_prefix_delimiter)
+        super().__init__(data_sources_mapping, data_outputs_mapping, data_rename_mapping)
 
     def run_data_logging(self, interval: int | float, duration: int | float | None):
         """
@@ -222,10 +287,18 @@ if __name__ == "__main__":
             'Log1': data_output_1,
             'Log2': data_output_2,
         },
-        data_source_prefix_delimiter='_'
+        data_rename_mapping={
+            'Sou1': {
+                'Log1': {'RandData0': 'RandData0InLog1'},
+                'Log2': {'RandData1': 'RandData1InLog2', 'RandData2': 'RandData2InLog2'},
+            },
+            'Sou2': {
+                'Log2': {'RandStr0': 'RandStr000'},
+            }
+        }
     )
-    print(f"Data source(s): {data_logger.data_sources}")
-    print(f"Data output(s): {data_logger.data_outputs}")
+    print(f"Data sources mapping: {data_logger.data_sources_mapping}")
+    print(f"Data outputs mapping: {data_logger.data_outputs_mapping}")
     data_logger.run_data_logging(
         interval=2,
         duration=10

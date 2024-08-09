@@ -4,7 +4,7 @@ Module Data source output
 Data source output is for system that contains source (for read data) and output (for log data) via one system
 interface, e.g. Beckhoff PLC (ADS interface), MQTT (client interface)
 """
-from abc import ABC, abstractmethod
+from abc import ABC
 from Base import DataSource, DataOutput
 from typing import Optional
 import logging.config
@@ -23,7 +23,7 @@ class DataSourceOutputBase(ABC):
 
     class SystemDataOutput(DataOutput.DataOutputBase, ABC):
         """Nested class for data output operation"""
-        def __init__(self, system: Optional[object], log_time_required: bool):
+        def __init__(self, system: Optional[object], log_time_required: Optional[bool]):
             super().__init__(log_time_required)
             self.system = system
 
@@ -45,5 +45,5 @@ class DataSourceOutputBase(ABC):
         """Instance of SystemDataOutput, initialized on first access"""
         if self._data_output is None:
             # Lazy initialization with properties
-            self._data_output = self.SystemDataOutput(system=self.system)
+            self._data_output = self.SystemDataOutput(system=self.system, log_time_required=None)
         return self._data_output

@@ -6,7 +6,6 @@ What is Automation Device Specification (ADS):
 """
 
 from Base import DataSourceOutput
-from typing import Optional
 import pyads
 import time
 import os
@@ -202,23 +201,25 @@ class AdsDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
     @property
     def data_source(self) -> 'AdsDataSourceOutput.AdsDataSource':
         """Instance of AdsDataSource, initialized on first access"""
-        if self._data_source is None and self._source_data_names is not None:
-            # Lazy initialization with properties
-            self._data_source = self.AdsDataSource(
-                system=self.system, all_variable_names=tuple(self._source_data_names))
-        else:
-            raise ValueError("No values in 'source_data_names', unable to initialize data source")
+        if self._data_source is None:
+            if self._source_data_names is None:
+                raise ValueError("No values in 'source_data_names', unable to initialize data source")
+            else:
+                # Lazy initialization with properties
+                self._data_source = self.AdsDataSource(
+                    system=self.system, all_variable_names=tuple(self._source_data_names))
         return self._data_source
 
     @property
     def data_output(self) -> 'AdsDataSourceOutput.AdsDataOutput':
         """Instance of AdsDataOutput, initialized on first access"""
-        if self._data_output is None and self._output_data_names is not None:
-            # Lazy initialization with properties
-            self._data_output = self.AdsDataOutput(
-                system=self.system, all_variable_names=tuple(self._output_data_names))
-        else:
-            raise ValueError("No values in 'output_data_names', unable to initialize data output")
+        if self._data_output is None:
+            if self._output_data_names is None:
+                raise ValueError("No values in 'output_data_names', unable to initialize data output")
+            else:
+                # Lazy initialization with properties
+                self._data_output = self.AdsDataOutput(
+                    system=self.system, all_variable_names=tuple(self._output_data_names))
         return self._data_output
 
     @property
@@ -251,10 +252,26 @@ if __name__ == '__main__':
     ads_logger_read = DataLogger.DataLoggerTimeTrigger(
         data_sources_mapping={'ads': ads_source_output},
         data_outputs_mapping={'csv_output': csv_output},
+        data_rename_mapping={
+            'ads': {
+                'csv_output': {
+                    'GVL_WtrSupPri.stWtrSupPriCtrl[1].fCircSupTempSet': 'FW_CircSupTempSet',
+                    'GVL_WtrSupPri.stWtrSupPriCtrl[2].fCircSupTempSet': 'FK_CircSupTempSet',
+                }
+            }
+        }
     )
     ads_logger_write = DataLogger.DataLoggerTimeTrigger(
         data_sources_mapping={'random': random_source},
         data_outputs_mapping={'ads_output': ads_source_output},
+        data_rename_mapping={
+            'random': {
+                'ads_output': {
+                    'RandData0': 'GVL_WtrSupPri.stWtrSupPriCtrl[1].fCircSupTempSet',
+                    'RandData1': 'GVL_WtrSupPri.stWtrSupPriCtrl[2].fCircSupTempSet',
+                }
+            }
+        }
     )
 
     # Run DataLoggers
