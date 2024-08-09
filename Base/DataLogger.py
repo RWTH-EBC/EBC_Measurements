@@ -2,7 +2,7 @@
 Base module: DataLogger, incl. ABC of DataSource and DataOutput
 """
 
-from Base import DataSource, DataOutput
+from Base import DataSource, DataOutput, DataSourceOutput
 from abc import ABC, abstractmethod
 import time
 import logging.config
@@ -40,10 +40,12 @@ class DataLoggerBase(ABC):
         """
         # Extract all data sources and outputs to dict (values as instance(s)), also for nested class, e.g. Beckhoff
         self._data_sources_mapping = {
-            k: ds.data_source if hasattr(ds, 'data_source') else ds for k, ds in data_sources_mapping.items()
+            k: ds.data_source if isinstance(ds, DataSourceOutput.DataSourceOutputBase) else ds
+            for k, ds in data_sources_mapping.items()
         }
         self._data_outputs_mapping = {
-            k: do.data_output if hasattr(do, 'data_output') else do for k, do in data_outputs_mapping.items()
+            k: do.data_output if isinstance(do, DataSourceOutput.DataSourceOutputBase) else do
+            for k, do in data_outputs_mapping.items()
         }
         # Generate list of data sources and outputs
         self._data_sources = list(self._data_sources_mapping.values())
