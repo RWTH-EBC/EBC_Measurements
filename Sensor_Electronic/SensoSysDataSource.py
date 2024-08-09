@@ -349,6 +349,12 @@ if __name__ == '__main__':
     time_logger = DataLogger.DataLoggerTimeTrigger(
         data_sources_mapping={'senso_sys': senso_sys_source},
         data_outputs_mapping={'csv_output': csv_output},
+        data_rename_mapping={
+            'senso_sys': {
+                'csv_output': {'v_12': 'v_left', 'v_1': 'v_right'}
+            }
+        },
+        data_rename_mapping_explicit=False
     )
     # Run DataLogger
     time_logger.run_data_logging(

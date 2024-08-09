@@ -17,6 +17,7 @@ class DataLoggerBase(ABC):
             data_sources_mapping: dict[str: DataSource.DataSourceBase],
             data_outputs_mapping: dict[str: DataOutput.DataOutputBase],
             data_rename_mapping: dict[str: dict[str: dict[str: str]]] | None = None,
+            **kwargs
     ):
         """
         Initialize data logger instance
@@ -64,6 +65,9 @@ class DataLoggerBase(ABC):
         :param data_outputs_mapping: Mapping of multiple data outputs
         :param data_rename_mapping: Mapping of rename for data sources and data outputs, None to use default names
             provided by data sources
+        :param **kwargs:
+            'data_rename_mapping_explicit': bool: If set True, all variable keys in rename mapping will be checked, if
+            they are available in data source
         """
         # Extract all data sources and outputs to dict (values as instance(s)), also for nested class, e.g. Beckhoff
         self._data_sources_mapping = {
@@ -86,10 +90,13 @@ class DataLoggerBase(ABC):
                     for do_name, mapping in output_dict.items():
                         if do_name in self._data_outputs_mapping.keys():
                             # Check mapping keys
-                            for key in mapping.keys():
-                                if key not in self._data_sources_mapping[ds_name].all_variable_names:
-                                    raise ValueError(f"Invalid variable name '{key}' for data source '{ds_name}' data "
-                                                     f"output '{do_name}' for rename mapping")
+                            if kwargs.get('data_rename_mapping_explicit', False):
+                                for key in mapping.keys():
+                                    if key not in self._data_sources_mapping[ds_name].all_variable_names:
+                                        raise ValueError(
+                                            f"Explicit checking activated: Invalid variable name '{key}' for data "
+                                            f"source '{ds_name}' data output '{do_name}' for rename mapping"
+                                        )
                         else:
                             raise ValueError(f"Invalid data output name '{do_name}' for rename mapping")
                 else:
@@ -201,10 +208,11 @@ class DataLoggerTimeTrigger(DataLoggerBase):
             data_sources_mapping: dict[str: DataSource.DataSourceBase],
             data_outputs_mapping: dict[str: DataOutput.DataOutputBase],
             data_rename_mapping: dict[str: dict[str: dict[str: str]]] | None = None,
+            **kwargs
     ):
         """Time triggerd data logger"""
         logger.info("Initializing DataLoggerTimeTrigger ...")
-        super().__init__(data_sources_mapping, data_outputs_mapping, data_rename_mapping)
+        super().__init__(data_sources_mapping, data_outputs_mapping, data_rename_mapping, **kwargs)
 
     def run_data_logging(self, interval: int | float, duration: int | float | None):
         """
