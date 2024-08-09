@@ -71,7 +71,7 @@ class SensoSys:
         },
     }
 
-    def __init__(self, port: str = 'COM1', time_out: float = 0.05):
+    def __init__(self, port: str = 'COM1', time_out: float = 0.1):
         """
         Initialize the SensoSys instance
         :param port: COM-port for the device
@@ -125,7 +125,11 @@ class SensoSys:
         # Send the request
         self.ser.write(hex_command.encode('utf-8'))  # Encode the command to bytes
         # Read a line from the serial port, decode, remove any leading and trailing whitespace
-        return self.ser.readline().decode('utf-8').strip()
+        try:
+            return self.ser.readline().decode('utf-8').strip()
+        except UnicodeError as e:
+            logger.error(e)
+            return ''  # Not response
 
     def set_configuration(
             self,
@@ -828,7 +832,7 @@ class SensoSys:
 
         if not response:
             # No response due to time out
-            logger.info(f"No data received due to time out")
+            logger.info(f"No data received due to time out or error")
             return None
         elif response.startswith(('!', '>', '<')):
             # Valid response

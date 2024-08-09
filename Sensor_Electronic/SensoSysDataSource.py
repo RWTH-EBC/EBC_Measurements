@@ -200,7 +200,7 @@ class SensoSysDataSource(DataSource.DataSourceBase):
                             f'senso_therm_indicator_channel_{_ch}': self.sensosys.senso_therm_read_indicator(
                                 _id, _ch).get('senso_therm_indicator')
                         })
-                elif instrument_name.startswith('HYGRO'):
+                elif instrument_name.startswith(('HYGRO', 'HIGRO')):
                     device_responses.update(self.sensosys.senso_hygbar_read_configuration(_id))
                 else:
                     raise ValueError(f"Invalid instrument name '{instrument_name}'")
@@ -229,7 +229,7 @@ class SensoSysDataSource(DataSource.DataSourceBase):
                 names += (f't_a_{_id}', f'v_{_id}', f'vstar_{_id}')
             elif _name.startswith('THERM'):
                 names += (f't_a_{_id}', f't_g_{_id}', f't_w_{_id}', f't_s_{_id}')
-            elif _name.startswith('HYGRO'):
+            elif _name.startswith(('HYGRO', 'HIGRO')):
                 names += tuple(f'{p}_{_id}' for p in self.sensosys.senso_hygbar_sensor_config[_sensor_config]['params'])
             else:
                 raise ValueError(f"Invalid instrument name '{_name}'")
@@ -261,7 +261,7 @@ class SensoSysDataSource(DataSource.DataSourceBase):
                         f't_w_{_id}': resp.get('t_w'),
                         f't_s_{_id}': resp.get('t_s'),
                     })
-            elif _name.startswith('HYGRO'):
+            elif _name.startswith(('HYGRO', 'HIGRO')):
                 resp = self.sensosys.senso_hygbar_read_measurement_data(_id, _sensor_config)
                 if resp is None:
                     logger.warning(f"No data received from {_id} - {_name} ...")
@@ -349,15 +349,11 @@ if __name__ == '__main__':
     time_logger = DataLogger.DataLoggerTimeTrigger(
         data_sources_mapping={'senso_sys': senso_sys_source},
         data_outputs_mapping={'csv_output': csv_output},
-        data_rename_mapping={
-            'senso_sys': {
-                'csv_output': {'v_12': 'v_left', 'v_1': 'v_right'}
-            }
-        },
+        data_rename_mapping=None,
         data_rename_mapping_explicit=False
     )
     # Run DataLogger
     time_logger.run_data_logging(
-        interval=1,
-        duration=30
+        interval=5,
+        duration=None
     )
