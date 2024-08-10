@@ -1,0 +1,199 @@
+@startuml
+package Base{}
+
+package Base.DataSource{
+    abstract class DataSourceBase {
+        # _all_variable_names: tuple[str, ...]
+        + __init__()
+        + {abstract} read_data(): dict
+        + all_variable_names: tuple[str, ...] {readOnly}
+    }
+    note right of DataSourceBase::read_data
+        return = {
+            <variable_name_1>: <value_1>,
+            <variable_name_2>: <value_2>,
+            ...
+        }
+    end note
+
+    class RandomDataSource implements DataSourceBase {
+        + size: int
+        + key_missing_rate: float
+        + value_missing_rate: float
+        + __init__(size: int, key_missing_rate: float, value_missing_rate: float)
+        + read_data() : dict
+    }
+
+    class RandomStringSource extends RandomDataSource {
+        + str_length: int
+        + __init__(size: int, str_length: int, key_missing_rate: float, value_missing_rate: float)
+        + read_data(): dict
+    }
+}
+
+package Base.DataOutput{
+    abstract class DataOutputBase {
+        + key_of_log_time: str {static}
+        # _all_variable_names: tuple[str, ...]
+        # _log_time_required: bool
+        + __init__(log_time_required: bool)
+        + {abstract} log_data(data: dict)
+        + {static} generate_dir_of_file(file_name: str)
+        + all_variable_names: tuple[str, ...] {readOnly, writeOnly}
+        + log_time_required: bool {readOnly}
+    }
+    note right of DataOutputBase::log_data
+        data = {
+            <variable_name_1>: <value_1>,
+            <variable_name_2>: <value_2>,
+            ...
+        }
+    end note
+
+    class DataOutputCsv implements DataOutputBase {
+        + file_name: str
+        + csv_writer_settings: DataOutputCsv.CsvWriterSettings
+        + __init__(file_name: str, csv_writer_settings: dict | None = None)
+        + log_data(data: dict)
+        + write_header_line()
+        # _write_to_csv(row: list)
+        # _append_to_csv(row: list)
+    }
+
+    class CsvWriterSettings{
+        + delimiter: str
+    }
+
+    DataOutputCsv *-- CsvWriterSettings
+}
+
+package Base.DataLogger{
+    abstract class DataLoggerBase {
+        # _data_sources_mapping: dict[str: DataSourceBase]
+        # _data_outputs_mapping: dict[str: DataOutputBase]
+        # _data_rename_mapping: dict[str: dict[str: dict[str: str]]] | None
+        # _all_variable_names_dict: dict[str: dict[str: tuple[str, ...]]]
+        + __init__(\n   data_sources_mapping: dict[str: DataSource.DataSourceBase],\n   data_outputs_mapping: dict[str: DataOutput.DataOutputBase],\n   data_rename_mapping: dict[str: dict[str: dict[str: str]]],\n    **kwargs\n)
+        + read_data_all_sources(): dict[str: dict]
+        + log_data_all_outputs(data: dict[str: dict], timestamp: str)
+        + {abstract} run_data_logging(**kwargs)
+        + data_sources_mapping: dict {readOnly}
+        + data_outputs_mapping: dict {readOnly}
+    }
+    note right of DataLoggerBase::_data_sources_mapping
+        {
+            <source_name_1>: <data_source_1>,
+            <source_name_2>: <data_source_2>,
+            ...
+        }
+    end note
+    note right of DataLoggerBase::_data_outputs_mapping
+        {
+            <output_name_1>: <data_output_1>,
+            <output_name_2>: <data_output_2>,
+            ...
+        }
+    end note
+    note right of DataLoggerBase::_data_rename_mapping
+        {
+            <source_name_1>: {
+                <output_name_1>: {
+                    <variable_name_1_in_source_1>: <variable_name_1_in_output_1>,
+                    <variable_name_2_in_source_1>: <variable_name_2_in_output_1>,
+                    ...
+                },
+                <output_name_2>: {
+                    <variable_name_1_in_source_1>: <variable_name_1_in_output_2>,
+                    <variable_name_2_in_source_1>: <variable_name_2_in_output_2>,
+                    ...
+                },
+                ...
+            },
+            <source_name_2>: {
+                <output_name_1>: {
+                    <variable_name_1_in_source_2>: <variable_name_1_in_output_1>,
+                    <variable_name_2_in_source_2>: <variable_name_2_in_output_1>,
+                    ...
+                },
+                <output_name_2>: {
+                    <variable_name_1_in_source_2>: <variable_name_1_in_output_2>,
+                    <variable_name_2_in_source_2>: <variable_name_2_in_output_2>,
+                    ...
+                },
+                ...
+            },
+            ...
+        }
+    end note
+    note left of DataLoggerBase::_all_variable_names_dict
+        {
+            <source_name_1>: {
+                <output_name_1>: tuple[str, ...],
+                <output_name_2>: tuple[str, ...],
+                ...
+            },
+            <source_name_2>: {
+                <output_name_1>: tuple[str, ...],
+                <output_name_2>: tuple[str, ...],
+                ...
+            },
+            ...
+        }
+    end note
+    note left of DataLoggerBase::read_data_all_sources
+        return = {
+            <source_name_1>: {
+                <variable_name_1>: <value_1>,
+                <variable_name_2>: <value_2>,
+                ...
+            },
+            <source_name_2>: {
+                <variable_name_1>: <value_1>,
+                <variable_name_2>: <value_2>,
+                ...
+            },
+            ...
+        }
+    end note
+    note left of DataLoggerBase::log_data_all_outputs
+        data: same structure as return of
+        read_data_all_sources
+    end note
+
+    class DataLoggerTimeTrigger implements DataLoggerBase {
+        + __init__(\n   data_sources_mapping: dict[str: DataSource.DataSourceBase],\n   data_outputs_mapping: dict[str: DataOutput.DataOutputBase],\n   data_rename_mapping: dict[str: dict[str: dict[str: str]]],\n    **kwargs\n)
+        + run_data_logging(interval: int | float, duration: int | float | None)
+        + {static} get_timestamp_now(): str
+    }
+
+    DataLoggerBase o-- DataSourceBase
+    DataLoggerBase o-- DataOutputBase
+}
+
+package Base.DataSourceOutput{
+    abstract class DataSourceOutputBase{
+        + system: object
+        # _data_source: SystemDataSource | None
+        # _data_output: SystemDataOutput | None
+        + data_source: SystemDataSource {readOnly}
+        + data_output: SystemDataOutput {readOnly}
+    }
+
+    abstract class SystemDataSource{
+        + system: object
+        + __init__(system: object)
+    }
+
+    abstract class SystemDataOutput{
+        + system: object
+        + __init__(system: object, log_time_required: bool)
+    }
+
+    DataSourceOutputBase *-- SystemDataSource
+    DataSourceOutputBase *-- SystemDataOutput
+}
+
+Base.DataSource.DataSourceBase <|.. Base.DataSourceOutput.SystemDataSource
+Base.DataOutput.DataOutputBase <|.. Base.DataSourceOutput.SystemDataOutput
+
+@enduml
