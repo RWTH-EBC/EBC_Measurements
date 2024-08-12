@@ -1,3 +1,10 @@
-import os
+from .Base import DataLogger, DataOutput, DataSource
+from .Beckhoff import AdsDataSourceOutput
+from .Sensor_Electronic import SensoSysDataSource
+import logging
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Configure the root logger
+logging.basicConfig(
+    level=logging.INFO,  # Set the logging level
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)

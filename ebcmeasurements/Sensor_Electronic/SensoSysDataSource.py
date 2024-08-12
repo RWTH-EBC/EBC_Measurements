@@ -2,7 +2,6 @@
 Module SensoSysDataSource: Interface to DataLogger
 """
 
-from ebcmeasurements import BASE_DIR
 from ebcmeasurements.Base import DataSource, Auxiliary
 from ebcmeasurements.Sensor_Electronic import SensoSysDevices
 from typing import TypedDict
@@ -11,8 +10,7 @@ import os
 import sys
 import logging.config
 # Load logging configuration from file
-logging.config.fileConfig(os.path.join(BASE_DIR, 'Sensor_Electronic', '_config', 'logging.ini'))
-logger = logging.getLogger('SensoSys')
+logger = logging.getLogger(__name__)
 
 
 class SensoSysDataSource(DataSource.DataSourceBase):

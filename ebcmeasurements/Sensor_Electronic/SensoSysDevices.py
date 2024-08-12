@@ -27,7 +27,6 @@ CHKSUM      A 2-character checksum in the ASCII code as a sum of all the charact
 CR          End of command character, carriage return (0x0D)
 """
 
-from ebcmeasurements import BASE_DIR
 import serial  # Pyserial
 import serial.tools.list_ports
 import sys
@@ -36,8 +35,7 @@ import time
 import os
 import logging.config
 # Load logging configuration from file
-logging.config.fileConfig(os.path.join(BASE_DIR, 'Sensor_Electronic', '_config', 'logging.ini'))
-logger = logging.getLogger('SensoSys')
+logger = logging.getLogger(__name__)
 
 
 class SensoSys:
