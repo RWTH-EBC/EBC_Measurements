@@ -2,12 +2,14 @@
 Base module: DataLogger, incl. ABC of DataSource and DataOutput
 """
 
+from ebcmeasurements import BASE_DIR
 from ebcmeasurements.Base import DataSource, DataOutput, DataSourceOutput
 from abc import ABC, abstractmethod
 import time
+import os
 import logging.config
 # Load logging configuration from file
-logging.config.fileConfig(r'_config/logging.ini')
+logging.config.fileConfig(os.path.join(BASE_DIR, 'Base', '_config', 'logging.ini'))
 logger = logging.getLogger('DataLogger')
 
 

@@ -5,6 +5,7 @@ What is Automation Device Specification (ADS):
     See https://infosys.beckhoff.com/english.php?content=../content/1033/tcinfosys3/11291871243.html&id=
 """
 
+from ebcmeasurements import BASE_DIR
 from ebcmeasurements.Base import DataSourceOutput
 import pyads
 import time
@@ -12,7 +13,7 @@ import os
 import sys
 import logging.config
 # Load logging configuration from file
-logging.config.fileConfig(r'_config/logging.ini')
+logging.config.fileConfig(os.path.join(BASE_DIR, 'Beckhoff', '_config', 'logging.ini'))
 logger = logging.getLogger('ADS')
 
 

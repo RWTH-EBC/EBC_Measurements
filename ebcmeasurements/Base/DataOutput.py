@@ -4,13 +4,14 @@ Module Data Output
 Data output module will always receive data in type 'dict' from data logger, with keys of variable names.
 """
 
+from ebcmeasurements import BASE_DIR
 from abc import ABC, abstractmethod
 from typing import TypedDict
 import csv
 import os
 import logging.config
 # Load logging configuration from file
-logging.config.fileConfig(r'_config/logging.ini')
+logging.config.fileConfig(os.path.join(BASE_DIR, 'Base', '_config', 'logging.ini'))
 logger = logging.getLogger('DataOutput')
 
 
