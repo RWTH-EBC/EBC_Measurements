@@ -8,7 +8,6 @@ interface, e.g. Beckhoff PLC (ADS interface), MQTT (client interface)
 from abc import ABC
 from ebcmeasurements.Base import DataSource, DataOutput
 from typing import Optional
-import os
 import logging.config
 # Load logging configuration from file
 logger = logging.getLogger(__name__)

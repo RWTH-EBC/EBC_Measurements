@@ -32,7 +32,6 @@ import serial.tools.list_ports
 import sys
 import subprocess
 import time
-import os
 import logging.config
 # Load logging configuration from file
 logger = logging.getLogger(__name__)
