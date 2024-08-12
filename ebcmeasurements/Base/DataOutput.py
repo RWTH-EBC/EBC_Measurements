@@ -10,8 +10,7 @@ import csv
 import os
 import logging.config
 # Load logging configuration from file
-logging.config.fileConfig(r'_config/logging.ini')
-logger = logging.getLogger('DataOutput')
+logger = logging.getLogger(__name__)
 
 
 class DataOutputBase(ABC):
