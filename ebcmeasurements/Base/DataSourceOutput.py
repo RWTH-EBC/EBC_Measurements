@@ -5,7 +5,7 @@ Data source output is for system that contains source (for read data) and output
 interface, e.g. Beckhoff PLC (ADS interface), MQTT (client interface)
 """
 from abc import ABC
-from Base import DataSource, DataOutput
+from ebcmeasurements.Base import DataSource, DataOutput
 from typing import Optional
 import logging.config
 # Load logging configuration from file

@@ -5,7 +5,7 @@ What is Automation Device Specification (ADS):
     See https://infosys.beckhoff.com/english.php?content=../content/1033/tcinfosys3/11291871243.html&id=
 """
 
-from Base import DataSourceOutput
+from ebcmeasurements.Base import DataSourceOutput
 import pyads
 import time
 import os
@@ -232,7 +232,7 @@ class AdsDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
 
 
 if __name__ == '__main__':
-    from Base import DataSource, DataOutput, DataLogger, Auxiliary
+    from ebcmeasurements.Base import DataSource, DataOutput, DataLogger, Auxiliary
     import threading
 
     # Init ADS for data source and output

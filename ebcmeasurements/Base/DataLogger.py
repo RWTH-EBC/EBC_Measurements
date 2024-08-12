@@ -2,7 +2,7 @@
 Base module: DataLogger, incl. ABC of DataSource and DataOutput
 """
 
-from Base import DataSource, DataOutput, DataSourceOutput
+from ebcmeasurements.Base import DataSource, DataOutput, DataSourceOutput
 from abc import ABC, abstractmethod
 import time
 import logging.config

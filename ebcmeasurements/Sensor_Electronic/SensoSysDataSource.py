@@ -2,8 +2,8 @@
 Module SensoSysDataSource: Interface to DataLogger
 """
 
-from Base import DataSource, Auxiliary
-from Sensor_Electronic import SensoSysDevices
+from ebcmeasurements.Base import DataSource, Auxiliary
+from ebcmeasurements.Sensor_Electronic import SensoSysDevices
 from typing import TypedDict
 from datetime import datetime
 import os
@@ -330,7 +330,7 @@ class SensoSysDataSource(DataSource.DataSourceBase):
 
 
 if __name__ == '__main__':
-    from Base import DataOutput, DataLogger
+    from ebcmeasurements.Base import DataOutput, DataLogger
 
     # If configuration from file
     CONFIG_FROM_FILE = True
