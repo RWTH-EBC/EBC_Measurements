@@ -237,8 +237,8 @@ if __name__ == '__main__':
     # Init ADS for data source and output
     ads_source_output = AdsDataSourceOutput(
         ams_net_id='5.78.127.222.1.1',
-        source_data_names=Auxiliary.load_json('_config/AdsReadDataExamples.json')[:20],
-        output_data_names=Auxiliary.load_json('_config/AdsWriteDataExamples.json')
+        source_data_names=Auxiliary.load_json('_test/AdsReadDataExamples.json')[:20],
+        output_data_names=Auxiliary.load_json('_test/AdsWriteDataExamples.json')
     )
 
     # Init csv output

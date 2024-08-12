@@ -1,4 +1,4 @@
-from .Base import DataLogger, DataOutput, DataSource
+from .Base import Auxiliary, DataLogger, DataOutput, DataSource
 from .Beckhoff import AdsDataSourceOutput
 from .Sensor_Electronic import SensoSysDataSource
 import logging
