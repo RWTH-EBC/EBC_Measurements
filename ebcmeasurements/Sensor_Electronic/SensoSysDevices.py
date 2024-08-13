@@ -126,7 +126,7 @@ class SensoSys:
         except serial.SerialTimeoutException as e:
             logger.error(e)
             return ''  # No response
-        except UnicodeEncodeError as e:
+        except UnicodeError as e:
             logger.error(e)
             return ''  # No response
         # Read a line from the serial port, decode, remove any leading and trailing whitespace
