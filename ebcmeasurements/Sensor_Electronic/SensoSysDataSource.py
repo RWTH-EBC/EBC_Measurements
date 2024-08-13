@@ -23,8 +23,8 @@ class SensoSysDataSource(DataSource.DataSourceBase):
         """
         Initialize SensoSysDataSource instance
         :param port: Port number to connect, if None, start a configuration guidance
-        :param all_devices_ids: All possible device's IDs to scan, if None, scan ID from 0 to 255
         :param output_dir: Output dir to save initialization config and found devices, if None, they will not be saved
+        :param all_devices_ids: All possible device's IDs to scan, if None, scan ID from 0 to 255
         :param time_out: Timeout in seconds for serial communication
         """
         logger.info("Initializing SensoSysDataSource ...")
