@@ -121,13 +121,20 @@ class SensoSys:
         :return: Decoded response in utf-8
         """
         # Send the request
-        self.ser.write(hex_command.encode('utf-8'))  # Encode the command to bytes
+        try:
+            self.ser.write(hex_command.encode('utf-8'))  # Encode the command to bytes
+        except serial.SerialTimeoutException as e:
+            logger.error(e)
+            return ''  # No response
+        except UnicodeEncodeError as e:
+            logger.error(e)
+            return ''  # No response
         # Read a line from the serial port, decode, remove any leading and trailing whitespace
         try:
             return self.ser.readline().decode('utf-8').strip()
         except UnicodeError as e:
             logger.error(e)
-            return ''  # Not response
+            return ''  # No response
 
     def set_configuration(
             self,
