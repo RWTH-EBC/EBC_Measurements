@@ -42,6 +42,16 @@ class DataOutputBase(ABC):
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
+    @staticmethod
+    def clean_keys_with_none_values(input_dict: dict) -> dict:
+        """Clean keys that have none values"""
+        keys_of_none_values = [k for k, v in input_dict.items() if v is None]
+        if len(keys_of_none_values) > 0:
+            logger.debug(f"Found keys with none values: '{keys_of_none_values}, removing these keys ...")
+            for _k in keys_of_none_values:
+                del input_dict[_k]
+        return input_dict
+
     @property
     def all_variable_names(self) -> tuple[str, ...]:
         """

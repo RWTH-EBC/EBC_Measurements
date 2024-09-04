@@ -200,6 +200,11 @@ class DataLoggerBase(ABC):
     def data_outputs_mapping(self) -> dict:
         return self._data_outputs_mapping
 
+    @staticmethod
+    def get_timestamp_now() -> str:
+        """Get the timestamp by now"""
+        return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+
 
 class DataLoggerTimeTrigger(DataLoggerBase):
     def __init__(
@@ -269,11 +274,6 @@ class DataLoggerTimeTrigger(DataLoggerBase):
             logger.info("Data logging completed")
         except KeyboardInterrupt:
             logger.warning("Data logging stopped manually")
-
-    @staticmethod
-    def get_timestamp_now() -> str:
-        """Get the timestamp by now"""
-        return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
 
 
 if __name__ == "__main__":

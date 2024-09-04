@@ -39,6 +39,7 @@ package Base.DataOutput{
         + __init__(log_time_required: bool)
         + {abstract} log_data(data: dict)
         + {static} generate_dir_of_file(file_name: str)
+        + {static} clean_keys_with_none_values(input_dict: dict)
         + all_variable_names: tuple[str, ...] {readOnly, writeOnly}
         + log_time_required: bool {readOnly}
     }
@@ -79,6 +80,7 @@ package Base.DataLogger{
         + {abstract} run_data_logging(**kwargs)
         + data_sources_mapping: dict {readOnly}
         + data_outputs_mapping: dict {readOnly}
+        + {static} get_timestamp_now(): str
     }
     note right of DataLoggerBase::_data_sources_mapping
         {
@@ -163,7 +165,6 @@ package Base.DataLogger{
     class DataLoggerTimeTrigger implements DataLoggerBase {
         + __init__(\n   data_sources_mapping: dict[str: DataSource.DataSourceBase],\n   data_outputs_mapping: dict[str: DataOutput.DataOutputBase],\n   data_rename_mapping: dict[str: dict[str: dict[str: str]]],\n    **kwargs\n)
         + run_data_logging(interval: int | float, duration: int | float | None)
-        + {static} get_timestamp_now(): str
     }
 
     DataLoggerBase o-- DataSourceBase
