@@ -70,13 +70,13 @@ package Base.DataOutput{
 
 package Base.DataLogger{
     abstract class DataLoggerBase {
-        # _data_sources_mapping: dict[str: DataSourceBase]
-        # _data_outputs_mapping: dict[str: DataOutputBase]
-        # _data_rename_mapping: dict[str: dict[str: dict[str: str]]] | None
-        # _all_variable_names_dict: dict[str: dict[str: tuple[str, ...]]]
-        + __init__(\n   data_sources_mapping: dict[str: DataSource.DataSourceBase],\n   data_outputs_mapping: dict[str: DataOutput.DataOutputBase],\n   data_rename_mapping: dict[str: dict[str: dict[str: str]]],\n    **kwargs\n)
-        + read_data_all_sources(): dict[str: dict]
-        + log_data_all_outputs(data: dict[str: dict], timestamp: str)
+        # _data_sources_mapping: dict[str, DataSourceBase | DataSourceOutput.DataSourceOutputBase]
+        # _data_outputs_mapping: dict[str, DataOutputBase | DataSourceOutput.DataSourceOutputBase]
+        # _data_rename_mapping: dict[str, dict[str, dict[str, str]]] | None
+        # _all_variable_names_dict: dict[str, dict[str, tuple[str, ...]]]
+        + __init__(\n   data_sources_mapping: dict[str, DataSource.DataSourceBase],\n   data_outputs_mapping: dict[str, DataOutput.DataOutputBase],\n   data_rename_mapping: dict[str, dict[str, dict[str, str]]],\n    **kwargs\n)
+        + read_data_all_sources(): dict[str, dict]
+        + log_data_all_outputs(data: dict[str, dict], timestamp: str)
         + {abstract} run_data_logging(**kwargs)
         + data_sources_mapping: dict {readOnly}
         + data_outputs_mapping: dict {readOnly}
@@ -163,7 +163,7 @@ package Base.DataLogger{
     end note
 
     class DataLoggerTimeTrigger implements DataLoggerBase {
-        + __init__(\n   data_sources_mapping: dict[str: DataSource.DataSourceBase],\n   data_outputs_mapping: dict[str: DataOutput.DataOutputBase],\n   data_rename_mapping: dict[str: dict[str: dict[str: str]]],\n    **kwargs\n)
+        + __init__(\n   data_sources_mapping: dict[str, DataSource.DataSourceBase | DataSourceOutput.DataSourceOutputBase],\n   data_outputs_mapping: dict[str, DataOutput.DataOutputBase | DataSourceOutput.DataSourceOutputBase],\n   data_rename_mapping: dict[str, dict[str, dict[str, str]]],\n    **kwargs\n)
         + run_data_logging(interval: int | float, duration: int | float | None)
     }
 

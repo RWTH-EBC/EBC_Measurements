@@ -13,9 +13,9 @@ logger = logging.getLogger(__name__)
 class DataLoggerBase(ABC):
     def __init__(
             self,
-            data_sources_mapping: dict[str: DataSource.DataSourceBase],
-            data_outputs_mapping: dict[str: DataOutput.DataOutputBase],
-            data_rename_mapping: dict[str: dict[str: dict[str: str]]] | None = None,
+            data_sources_mapping: dict[str, DataSource.DataSourceBase | DataSourceOutput.DataSourceOutputBase],
+            data_outputs_mapping: dict[str, DataOutput.DataOutputBase | DataSourceOutput.DataSourceOutputBase],
+            data_rename_mapping: dict[str, dict[str, dict[str, str]]] | None = None,
             **kwargs
     ):
         """
@@ -152,14 +152,14 @@ class DataLoggerBase(ABC):
             else:
                 pass
 
-    def read_data_all_sources(self) -> dict[str: dict]:
+    def read_data_all_sources(self) -> dict[str, dict]:
         """Read data from all data sources"""
         return {
             ds_name: ds.read_data()
             for ds_name, ds in self._data_sources_mapping.items()
         }
 
-    def log_data_all_outputs(self, data: dict[str: dict], timestamp: str = None):
+    def log_data_all_outputs(self, data: dict[str, dict], timestamp: str = None):
         """Log data to all data outputs"""
         for do_name, do in self._data_outputs_mapping.items():
             # Unzip and rename key for the current output
@@ -209,9 +209,9 @@ class DataLoggerBase(ABC):
 class DataLoggerTimeTrigger(DataLoggerBase):
     def __init__(
             self,
-            data_sources_mapping: dict[str: DataSource.DataSourceBase],
-            data_outputs_mapping: dict[str: DataOutput.DataOutputBase],
-            data_rename_mapping: dict[str: dict[str: dict[str: str]]] | None = None,
+            data_sources_mapping: dict[str, DataSource.DataSourceBase | DataSourceOutput.DataSourceOutputBase],
+            data_outputs_mapping: dict[str, DataOutput.DataOutputBase | DataSourceOutput.DataSourceOutputBase],
+            data_rename_mapping: dict[str, dict[str, dict[str, str]]] | None = None,
             **kwargs
     ):
         """Time triggerd data logger"""
@@ -257,7 +257,7 @@ class DataLoggerTimeTrigger(DataLoggerBase):
 
                 # Log count
                 log_count += 1  # Update log counter
-                print(f"Logging count(s): {log_count}")  # Print log counter to console
+                print(f"TimeTrigger - Logging count(s): {log_count}")  # Print log counter to console
 
                 # Log data to each output
                 self.log_data_all_outputs(data, timestamp)

@@ -1,8 +1,9 @@
 """
 Module MqttDataSourceOutput: Interface of MQTT client to DataLogger
 """
-from ebcmeasurements.Base import DataSourceOutput
+from ebcmeasurements.Base import DataOutput, DataSourceOutput, DataLogger
 import paho.mqtt.client as mqtt
+from typing import TypedDict
 import time
 import os
 import sys
@@ -20,23 +21,23 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
             self._all_variable_names = all_topics
             self._data_buffer = {}
 
+        def mqtt_subscribe(self):
+            qos = 0
+            self.system.subscribe(list(zip(self._all_variable_names, [qos] * len(self._all_variable_names))))
+
         def synchronize_data_buffer(self, data: dict[str, float]):
             self._data_buffer.update(data)
 
         def read_data(self) -> dict:
+            """Execute by DataLoggerTimeTrigger, read data from buffer updated in the last period and clean"""
             data = self._data_buffer.copy()  # Copy the current data buffer
             self._data_buffer.clear()  # Clear the data buffer
             return data
 
-        @property
-        def topics_list(self) -> list[tuple[str, int]]:
-            qos = 0
-            return list(zip(self._all_variable_names, [qos] * len(self._all_variable_names)))
-
     class MqttDataOutput(DataSourceOutput.DataSourceOutputBase.SystemDataOutput):
         """MQTT implementation of nested class SystemDataOutput"""
         def __init__(self, system: mqtt.Client, all_topics: tuple[str, ...]):
-            logger.info("Initializing AdsDataOutput ...")
+            logger.info("Initializing MqttDataOutput ...")
             super().__init__(system, log_time_required=False)  # No requires of log time
             self._all_variable_names = all_topics
 
@@ -44,12 +45,49 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
             if data:
                 data_cleaned = self.clean_keys_with_none_values(data)  # Clean none values
                 if data_cleaned:
-                    for topic, value in data_cleaned.items():
-                        self.system.publish(topic, value)
+                    if self.system.is_connected():
+                        for topic, value in data_cleaned.items():
+                            self.system.publish(topic, value)
+                    else:
+                        logger.warning("Unable to publish the data due to disconnection")
                 else:
                     logger.info("No more keys after cleaning the data, skipping logging ...")
             else:
                 logger.debug("No keys available in data, skipping logging ...")
+
+    class MqttDataLoggerConfig(TypedDict):
+        data_outputs_mapping: dict[str, DataOutput.DataOutputBase]
+        data_rename_mapping: dict[str, dict[str, str]] | None
+
+    class MqttDataLogger(DataLogger.DataLoggerBase):
+        """MQTT implementation of nested class MqttDataLogger, triggerd by 'on_message'"""
+        def __init__(
+                self,
+                data_source,
+                data_outputs_mapping: dict[str: DataOutput.DataOutputBase],
+                data_rename_mapping: dict[str: dict[str: str]] | None = None,
+        ):
+            """MQTT 'on message' triggerd data logger"""
+            logger.info("Initializing MqttDataLogger ...")
+            self.data_source_name = str(id(data_source))  # Get ID as data source name
+            self.log_count = 0  # Init count of logging
+            super().__init__(
+                data_sources_mapping={self.data_source_name: data_source},
+                data_outputs_mapping=data_outputs_mapping,
+                data_rename_mapping=
+                {self.data_source_name: data_rename_mapping} if data_rename_mapping is not None else None
+            )
+
+        def run_data_logging(self, data):
+            # Logging data
+            timestamp = self.get_timestamp_now()  # Get timestamp
+
+            # Log count
+            self.log_count += 1  # Update log counter
+            print(f"MQTT - Logging count(s): {self.log_count}")  # Print log counter to console
+
+            # Log data to each output
+            self.log_data_all_outputs({self.data_source_name: data}, timestamp)
 
     def __init__(
             self,
@@ -65,22 +103,28 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
         self.broker = broker
         self.port = port
         self.keepalive = keepalive
-        self._subscribe_topics = subscribe_topics
-        self._publish_topics = publish_topics
 
         # Config MQTT
         super().__init__()
         self.system = mqtt.Client()
-
-        # Init DataSource
-        if self._subscribe_topics is not None:
-            self._data_source = self.MqttDataSource(system=self.system, all_topics=tuple(self._subscribe_topics))
-        else:
-            self._data_source = None
-
         # Set username and password if provided
         if username and password:
             self.system.username_pw_set(username, password)
+
+        # Init DataSource
+        if subscribe_topics is not None:
+            self._data_source = self.MqttDataSource(system=self.system, all_topics=tuple(subscribe_topics))
+        else:
+            self._data_source = None
+
+        # Init DataOutput
+        if publish_topics is not None:
+            self._data_output = self.MqttDataOutput(system=self.system, all_topics=tuple(publish_topics))
+        else:
+            self._data_output = None
+
+        # Init DataLogger
+        self._data_logger = None
 
         # Assign callback functions
         self.system.on_connect = self.on_connect
@@ -98,10 +142,7 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
 
     def __del__(self):
         """Destructor method to ensure MQTT disconnected"""
-        if self.system.is_connected():
-            self._mqtt_stop()
-        else:
-            logger.info("MQTT broker already disconnected")
+        self._mqtt_stop()
 
     def _mqtt_connect(self):
         """Try to connect to MQTT broker only once"""
@@ -135,7 +176,7 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
 
     def _mqtt_stop(self):
         """Stop the network loop and disconnect the broker"""
-        logger.info("Stopping network loop ...")
+        logger.info("Stopping network loop and disconnecting ...")
         self.system.loop_stop()
         self.system.disconnect()
 
@@ -144,7 +185,7 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
             logger.info(f"Connected to {self.broker} with result code {rc}")
             # Subscribe to multiple topics for data source
             if self._data_source is not None:
-                self.system.subscribe(self.data_source.topics_list)
+                self._data_source.mqtt_subscribe()
         else:
             logger.warning(f"Connection failed with result code {rc}")
             self._mqtt_connect_with_retry(max_retries=100, retry_period=10)
@@ -153,15 +194,17 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
         topic = msg.topic
         payload = msg.payload.decode("utf-8")
         logger.debug(f"Received message '{payload}' on topic '{topic}' with QoS {msg.qos}")
-        # Synchronize data buffer of data source
+        data = {topic: float(payload)}
         if self._data_source is not None:
-            self._data_source.synchronize_data_buffer({topic: float(payload)})
+            self._data_source.synchronize_data_buffer(data)  # Synchronize data buffer of data source
+        if self._data_logger is not None:
+            self._data_logger.run_data_logging(data)  # Trigger MQTT data logger
 
     def on_publish(self, client, userdata, mid):
         logger.debug(f"Message published with mid: {mid}")
 
     def on_disconnect(self, client, userdata, rc):
-        logger.info("Disconnected from the broker")
+        logger.info(f"Disconnected from the broker {rc}")
         if rc != 0:
             logger.warning("Unexpected disconnection. Attempting to reconnect...")
             self._mqtt_connect_with_retry(max_retries=100, retry_period=10)
@@ -170,35 +213,107 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
     def data_source(self) -> 'MqttDataSourceOutput.MqttDataSource':
         """Instance of MqttDataSource"""
         if self._data_source is None:
-            raise ValueError("Unable to access data source, due to missing values in 'subscribe_topics'")
+            raise AttributeError("Data source unavailable, due to missing values in 'subscribe_topics'")
         return self._data_source
+
+    @property
+    def data_output(self) -> 'MqttDataSourceOutput.MqttDataOutput':
+        """Instance of MqttDataOutput"""
+        if self._data_output is None:
+            raise AttributeError("Data output unavailable, due to missing values in 'publish_topics'")
+        return self._data_output
+
+    @property
+    def data_logger(self) -> 'MqttDataSourceOutput.MqttDataLogger':
+        """MQTT data logger"""
+        return self._data_logger
+
+    @data_logger.setter
+    def data_logger(self, config: 'MqttDataSourceOutput.MqttDataLoggerConfig'):
+        """Set MQTT data logger"""
+        self._data_logger = self.MqttDataLogger(
+            self.data_source, config['data_outputs_mapping'], config.get('data_rename_mapping'))
 
 
 if __name__ == '__main__':
     from ebcmeasurements.Base import DataSource, DataOutput, DataLogger
+    import threading
 
     # Init MQTT
     mqtt_source_output = MqttDataSourceOutput(
-        broker="hil.ebc-team-kap.osc.eonerc.rwth-aachen.de",
+        broker="test.mosquitto.org",
         subscribe_topics=[
-            "rkl/GVL_PwrSupMon.stPwrSupMonCC[1,1].fVoltage",
-            "rkl/GVL_PwrSupMon.stPwrSupMonCC[2,1].fVoltage",
+            "ebc_measurements/A",
+            "ebc_measurements/B",
+        ],
+        publish_topics=[
+            "ebc_measurements/A",
+            "ebc_measurements/B",
+            "ebc_measurements/C",
+            "ebc_measurements/D",
         ]
     )
 
+    # Init random source
+    random_source = DataSource.RandomDataSource(size=4, key_missing_rate=0.2, value_missing_rate=0.5)
+
     # Init csv output
-    csv_output = DataOutput.DataOutputCsv(file_name=os.path.join('Test', 'csv_logger.csv'))
+    csv_output_time = DataOutput.DataOutputCsv(file_name=os.path.join('Test', 'csv_logger_time.csv'))
+    csv_output_event = DataOutput.DataOutputCsv(file_name=os.path.join('Test', 'csv_logger_event.csv'))
+
+    # Set MQTT DataLoggers
+    mqtt_source_output.data_logger = MqttDataSourceOutput.MqttDataLoggerConfig(
+        data_outputs_mapping={'csv_event': csv_output_event},
+        data_rename_mapping={
+            'csv_event': {
+                'ebc_measurements/A': 'value_A_event',
+                'ebc_measurements/B': 'value_B_event',
+            }
+        }
+    )
 
     # Init DataLoggers
-    mqtt_logger_read = DataLogger.DataLoggerTimeTrigger(
+    mqtt_logger_subscribe = DataLogger.DataLoggerTimeTrigger(
         data_sources_mapping={'mqtt': mqtt_source_output},
-        data_outputs_mapping={'csv_output': csv_output},
+        data_outputs_mapping={'csv_time': csv_output_time},
         data_rename_mapping={
             'mqtt': {
-                'csv_output': {
-                    'rkl/GVL_PwrSupMon.stPwrSupMonCC[1,1].fVoltage': 'PwrSupMonCC11',
+                'csv_time': {
+                    'ebc_measurements/A': 'value_A_t',
+                    'ebc_measurements/B': 'value_B_t',
                 }
             }
         }
     )
-    mqtt_logger_read.run_data_logging(interval=2, duration=None)
+    mqtt_logger_publish = DataLogger.DataLoggerTimeTrigger(
+        data_sources_mapping={'random': random_source},
+        data_outputs_mapping={'mqtt': mqtt_source_output},
+        data_rename_mapping={
+            'random': {
+                'mqtt': {
+                    'RandData0': 'ebc_measurements/A',
+                    'RandData1': 'ebc_measurements/B',
+                    'RandData2': 'ebc_measurements/C',
+                    'RandData3': 'ebc_measurements/D',
+                }
+            }
+        }
+    )
+    mqtt_logger_publish.run_data_logging(5, None)
+
+    # Run DataLoggers
+    thread_1 = threading.Thread(
+        target=mqtt_logger_subscribe.run_data_logging,
+        args=(15, None),
+        name='MQTT to csv',
+    )
+    thread_2 = threading.Thread(
+        target=mqtt_logger_publish.run_data_logging,
+        args=(2, None),
+        name='Rnd to MQTT',
+    )
+    thread_1.start()
+    time.sleep(0.5)
+    thread_2.start()
+    thread_1.join()
+    thread_2.join()
