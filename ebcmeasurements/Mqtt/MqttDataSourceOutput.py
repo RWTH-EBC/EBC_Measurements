@@ -56,6 +56,7 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
                 logger.debug("No keys available in data, skipping logging ...")
 
     class MqttDataLoggerConfig(TypedDict):
+        """Typed dict for logger configuration of nested class MqttDataLogger """
         data_outputs_mapping: dict[str, DataOutput.DataOutputBase]
         data_rename_mapping: dict[str, dict[str, str]] | None
 
@@ -99,6 +100,17 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
             subscribe_topics: list[str] | None = None,
             publish_topics: list[str] | None = None
     ):
+        """
+        Initialization of MqttDataSourceOutput instance
+
+        :param broker: See package paho.mqtt.client
+        :param port: See package paho.mqtt.client
+        :param keepalive: See package paho.mqtt.client
+        :param username: See package paho.mqtt.client
+        :param password: See package paho.mqtt.client
+        :param subscribe_topics: List of topics to be subscribed from MQTT broker, None to deactivate subscribe function
+        :param publish_topics: List of topics to be published to MQTT broker, None to deactivate publish function
+        """
         logger.info("Initializing MqttDataSourceOutput ...")
         self.broker = broker
         self.port = port
