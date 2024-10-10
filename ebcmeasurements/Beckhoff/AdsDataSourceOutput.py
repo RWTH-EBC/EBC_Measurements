@@ -92,20 +92,14 @@ class AdsDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
 
         def log_data(self, data: dict):
             """Log data"""
-            def clean_keys_with_none_values(input_dict: dict) -> dict:
-                """Clean keys that have none values"""
-                keys_of_none_values = [k for k, v in input_dict.items() if v is None]
-                if len(keys_of_none_values) > 0:
-                    logger.debug(f"Found keys with none values: '{keys_of_none_values}, removing these keys ...")
-                    for _k in keys_of_none_values:
-                        del input_dict[_k]
-                return input_dict
-
-            data_cleaned = clean_keys_with_none_values(data)  # Clean none values
-            if len(data_cleaned) > 0:
-                self.system.write_list_by_name(data_cleaned)
+            if data:
+                data_cleaned = self.clean_keys_with_none_values(data)  # Clean none values
+                if data_cleaned:
+                    self.system.write_list_by_name(data_cleaned)
+                else:
+                    logger.info("No more keys after cleaning the data, skipping logging ...")
             else:
-                logger.warning("No more keys after cleaning the data, skipping logging ...")
+                logger.debug("No keys available in data, skipping logging ...")
 
     def __init__(
             self,
