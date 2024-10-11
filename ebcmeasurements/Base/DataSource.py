@@ -89,15 +89,3 @@ class RandomStringSource(RandomDataSource):
             for name in self._all_variable_names
             if random.random() >= self.key_missing_rate
         }
-
-
-if __name__ == "__main__":
-    random_data_source = RandomDataSource(size=10, key_missing_rate=0.5, value_missing_rate=0.5)
-    print(f"All variable names of random data source: {random_data_source.all_variable_names}")
-    for _ in range(10):
-        print(random_data_source.read_data())
-
-    random_str_source = RandomStringSource(size=10, str_length=8, key_missing_rate=0.5, value_missing_rate=0.5)
-    print(f"All variable names of random string source: {random_str_source.all_variable_names}")
-    for _ in range(10):
-        print(random_str_source.read_data())
