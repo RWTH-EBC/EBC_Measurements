@@ -1,5 +1,5 @@
 """
-Example 01: Understand the basic structure of EBC_Measurements
+Example 01: The basic structure of EBC_Measurements
 
 As introduced in 'README.md', data logging is the process of acquiring data over time from sources, and storing them
 in one or multiple outputs. This example shows the basic structure of this process. To configurate this process, three
@@ -43,6 +43,8 @@ def e01_basic_structure_example():
         print(f"Random string source, request {req}: {data}")
 
     # Now, the following part configures a simple data logging process
+    input("Press Enter to configure a simple data logging process ...")
+
     # Step 1: Configuration data source(s)
     # Here uses a single random data source to generate data
     random_data_source = DataSource.RandomDataSource(size=10, key_missing_rate=0.2, value_missing_rate=0.2)
@@ -62,7 +64,9 @@ def e01_basic_structure_example():
         data_outputs_mapping={
             'Out1': csv_data_output_1, 'Out2': csv_data_output_2},  # Mapping of data outputs: {<name>: <instance>}
     )
+
     # Now, run this data logger
+    input("Press Enter to start data logging ...")
     data_logger.run_data_logging(interval=1, duration=5)
 
     # After logging, you can check both csv files under examples/Results: They contain the same data requested from
