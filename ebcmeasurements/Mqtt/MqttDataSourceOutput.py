@@ -5,7 +5,6 @@ from ebcmeasurements.Base import DataOutput, DataSourceOutput, DataLogger
 import paho.mqtt.client as mqtt
 from typing import TypedDict
 import time
-import os
 import sys
 import logging.config
 # Load logging configuration from file
@@ -245,87 +244,3 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
         """Set MQTT data logger"""
         self._data_logger = self.MqttDataLogger(
             self.data_source, config['data_outputs_mapping'], config.get('data_rename_mapping'))
-
-
-if __name__ == '__main__':
-    from ebcmeasurements.Base import DataSource, DataOutput, DataLogger
-    import threading
-
-    # Init MQTT
-    mqtt_source_output = MqttDataSourceOutput(
-        broker="test.mosquitto.org",
-        subscribe_topics=[
-            "ebc_measurements/A",
-            "ebc_measurements/B",
-        ],
-        publish_topics=[
-            "ebc_measurements/A",
-            "ebc_measurements/B",
-            "ebc_measurements/C",
-            "ebc_measurements/D",
-        ]
-    )
-
-    # Init random source
-    random_source = DataSource.RandomDataSource(size=4, key_missing_rate=0.2, value_missing_rate=0.5)
-
-    # Init csv output
-    csv_output_time = DataOutput.DataOutputCsv(file_name=os.path.join('Test', 'csv_logger_time.csv'))
-    csv_output_event = DataOutput.DataOutputCsv(file_name=os.path.join('Test', 'csv_logger_event.csv'))
-
-    # Set MQTT DataLoggers
-    mqtt_source_output.data_logger = MqttDataSourceOutput.MqttDataLoggerConfig(
-        data_outputs_mapping={'csv_event': csv_output_event},
-        data_rename_mapping={
-            'csv_event': {
-                'ebc_measurements/A': 'value_A_event',
-                'ebc_measurements/B': 'value_B_event',
-            }
-        }
-    )
-
-    # Init DataLoggers
-    mqtt_logger_subscribe = DataLogger.DataLoggerTimeTrigger(
-        data_sources_mapping={'mqtt': mqtt_source_output},
-        data_outputs_mapping={'csv_time': csv_output_time},
-        data_rename_mapping={
-            'mqtt': {
-                'csv_time': {
-                    'ebc_measurements/A': 'value_A_t',
-                    'ebc_measurements/B': 'value_B_t',
-                }
-            }
-        }
-    )
-    mqtt_logger_publish = DataLogger.DataLoggerTimeTrigger(
-        data_sources_mapping={'random': random_source},
-        data_outputs_mapping={'mqtt': mqtt_source_output},
-        data_rename_mapping={
-            'random': {
-                'mqtt': {
-                    'RandData0': 'ebc_measurements/A',
-                    'RandData1': 'ebc_measurements/B',
-                    'RandData2': 'ebc_measurements/C',
-                    'RandData3': 'ebc_measurements/D',
-                }
-            }
-        }
-    )
-    mqtt_logger_publish.run_data_logging(5, None)
-
-    # Run DataLoggers
-    thread_1 = threading.Thread(
-        target=mqtt_logger_subscribe.run_data_logging,
-        args=(15, None),
-        name='MQTT to csv',
-    )
-    thread_2 = threading.Thread(
-        target=mqtt_logger_publish.run_data_logging,
-        args=(2, None),
-        name='Rnd to MQTT',
-    )
-    thread_1.start()
-    time.sleep(0.5)
-    thread_2.start()
-    thread_1.join()
-    thread_2.join()
