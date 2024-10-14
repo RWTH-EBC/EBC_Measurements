@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <GVL Name="GVL_Test" Id="{285673b4-367d-4408-b104-9f8e570c7722}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	bTestRead: BOOL;	// Bool value to be read by EBC_Measurements
+	fTestRead: REAL := -10.0;	// Real value to be read by EBC_Measurements
+	
+	bTestWrite: BOOL;	// Bool value to be written by EBC_Measurements
+	fTestWrite: REAL;	// Real value to be written by EBC_Measurements
+	sTestWrite: STRING;	// String value to be written by EBC_Measurements
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

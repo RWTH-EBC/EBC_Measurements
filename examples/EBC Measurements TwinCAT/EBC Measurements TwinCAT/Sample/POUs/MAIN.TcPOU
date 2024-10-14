@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="MAIN" Id="{9226b76d-0684-4b68-b80b-43dc2364f929}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	fbTon: Tc2_Standard.TON;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbTon(IN:=NOT fbTon.Q , PT:=T#1S , Q=> , ET=> );
+
+IF fbTon.Q THEN
+	// Update bool
+	GVL_Test.bTestRead := NOT GVL_Test.bTestRead;
+	// Update real
+	IF GVL_Test.fTestRead < 10.0 THEN
+		GVL_Test.fTestRead := GVL_Test.fTestRead + 0.5;
+	ELSE
+		GVL_Test.fTestRead := -10.0;
+	END_IF
+END_IF
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="20" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="26" Count="2" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
