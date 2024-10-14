@@ -21,13 +21,18 @@ package Base.DataSource{
         + key_missing_rate: float
         + value_missing_rate: float
         + __init__(size: int, key_missing_rate: float, value_missing_rate: float)
-        + read_data() : dict
+        + read_data() : dict[str, real]
     }
 
     class RandomStringSource extends RandomDataSource {
         + str_length: int
         + __init__(size: int, str_length: int, key_missing_rate: float, value_missing_rate: float)
-        + read_data(): dict
+        + read_data(): dict[str, str]
+    }
+
+    class RandomBooleanSource extends RandomDataSource {
+        + __init__(size: int, key_missing_rate: float, value_missing_rate: float)
+        + read_data() : dict[str, bool]
     }
 }
 

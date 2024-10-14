@@ -55,7 +55,7 @@ class RandomDataSource(DataSourceBase):
         self.value_missing_rate = value_missing_rate
         self._all_variable_names = tuple(f'RandData{n}' for n in range(self.size))  # Define all data names
 
-    def read_data(self) -> dict:
+    def read_data(self) -> dict[str, float]:
         """Generate random data for each variable name, randomly drop some keys, and randomly insert None values"""
         return {
             name: (None if random.random() < self.value_missing_rate else random.uniform(0.0, 100.0))
@@ -78,7 +78,7 @@ class RandomStringSource(RandomDataSource):
         self.str_length = str_length
         self._all_variable_names = tuple(f'RandStr{n}' for n in range(self.size))  # Re-define all data names
 
-    def read_data(self) -> dict:
+    def read_data(self) -> dict[str, str]:
         def generate_random_string(length: int) -> str:
             """Generate random string with defined length"""
             chars = '1234567890AaBbCcDdEeFf'
@@ -86,6 +86,27 @@ class RandomStringSource(RandomDataSource):
 
         return {
             name: (None if random.random() < self.value_missing_rate else generate_random_string(self.str_length))
+            for name in self._all_variable_names
+            if random.random() >= self.key_missing_rate
+        }
+
+
+class RandomBooleanSource(RandomDataSource):
+    def __init__(
+            self, size: int = 10, key_missing_rate: float = 0.5, value_missing_rate: float = 0.5):
+        """
+        Random boolean source to simulate data generation
+        :param size: Number of variables to generate
+        :param key_missing_rate: Probability of a key being excluded from the final dictionary
+        :param value_missing_rate: Probability of assigning None to a value instead of a random float
+        """
+        super().__init__(size, key_missing_rate, value_missing_rate)
+        self._all_variable_names = tuple(f'RandBool{n}' for n in range(self.size))  # Re-define all data names
+
+    def read_data(self) -> dict[str, bool]:
+        """Generate random data for each variable name, randomly drop some keys, and randomly insert None values"""
+        return {
+            name: (None if random.random() < self.value_missing_rate else random.choice([True, False]))
             for name in self._all_variable_names
             if random.random() >= self.key_missing_rate
         }
