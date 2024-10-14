@@ -21,13 +21,18 @@ package Base.DataSource{
         + key_missing_rate: float
         + value_missing_rate: float
         + __init__(size: int, key_missing_rate: float, value_missing_rate: float)
-        + read_data() : dict
+        + read_data() : dict[str, real]
     }
 
     class RandomStringSource extends RandomDataSource {
         + str_length: int
         + __init__(size: int, str_length: int, key_missing_rate: float, value_missing_rate: float)
-        + read_data(): dict
+        + read_data(): dict[str, str]
+    }
+
+    class RandomBooleanSource extends RandomDataSource {
+        + __init__(size: int, key_missing_rate: float, value_missing_rate: float)
+        + read_data() : dict[str, bool]
     }
 }
 
@@ -73,8 +78,13 @@ package Base.DataLogger{
         # _data_sources_mapping: dict[str, DataSourceBase | DataSourceOutput.DataSourceOutputBase]
         # _data_outputs_mapping: dict[str, DataOutputBase | DataSourceOutput.DataSourceOutputBase]
         # _data_rename_mapping: dict[str, dict[str, dict[str, str]]] | None
+        # _all_duplicates: dict[str, dict[str, list[str]]]
         # _all_variable_names_dict: dict[str, dict[str, tuple[str, ...]]]
         + __init__(\n   data_sources_mapping: dict[str, DataSource.DataSourceBase],\n   data_outputs_mapping: dict[str, DataOutput.DataOutputBase],\n   data_rename_mapping: dict[str, dict[str, dict[str, str]]],\n    **kwargs\n)
+        # _check_data_rename_mapping_input(data_rename_mapping: dict, explicit: bool)
+        # _init_data_rename_mapping(data_rename_mapping: dict): dict[str, dict[str, dict[str, str]]]
+        # _get_duplicates_in_data_rename_mapping(data_rename_mapping: dict): dict[str, dict[str, list[str]]]
+        # _prefix_data_rename_mapping(all_duplicates: dict[str, dict[str, list[str]]], delimiter: str): dict[str, dict[str, dict[str, str]]]
         + read_data_all_sources(): dict[str, dict]
         + log_data_all_outputs(data: dict[str, dict], timestamp: str)
         + {abstract} run_data_logging(**kwargs)
@@ -127,6 +137,21 @@ package Base.DataLogger{
             ...
         }
     end note
+    note left of DataLoggerBase::_all_duplicates
+        {
+            <output_name_1>: {
+                <variable_name_1>: [<source_name_1>, ...],
+                <variable_name_2>: [<source_name_1>, ...],
+                ...
+            },
+            <output_name_2>: {
+                <variable_name_1>: [<source_name_1>, ...],
+                <variable_name_2>: [<source_name_1>, ...],
+                ...
+            },
+            ...
+        }
+    end note
     note left of DataLoggerBase::_all_variable_names_dict
         {
             <source_name_1>: {
@@ -141,6 +166,15 @@ package Base.DataLogger{
             },
             ...
         }
+    end note
+    note right of DataLoggerBase::_init_data_rename_mapping
+        return: same structure as data_rename_mapping
+    end note
+    note right of DataLoggerBase::_get_duplicates_in_data_rename_mapping
+        return: _all_duplicates
+    end note
+    note right of DataLoggerBase::_prefix_data_rename_mapping
+        return: same structure as data_rename_mapping
     end note
     note left of DataLoggerBase::read_data_all_sources
         return = {

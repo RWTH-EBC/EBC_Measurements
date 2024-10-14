@@ -23,15 +23,15 @@ class DataLoggerBase(ABC):
 
         The format of data_sources_mapping is as follows:
         {
-            '<source1_name>': instance1 of DataSource,
-            '<source2_name>': instance2 of DataSource,
+            '<source1_name>': <instance1 of DataSource>,
+            '<source2_name>': <instance2 of DataSource>,
             ...
         }
 
         The format of data_outputs_mapping is as follows:
         {
-            '<output1_name>': instance1 of class DataOutput,
-            '<output2_name>': instance2 of class DataOutput,
+            '<output1_name>': <instance1 of class DataOutput>,
+            '<output2_name>': <instance2 of class DataOutput>,
             ...
         }
 
@@ -65,8 +65,11 @@ class DataLoggerBase(ABC):
         :param data_rename_mapping: Mapping of rename for data sources and data outputs, None to use default names
             provided by data sources
         :param **kwargs:
-            'data_rename_mapping_explicit': bool: If set True, all variable keys in rename mapping will be checked, if
-            they are available in data source
+            'data_rename_mapping_explicit': bool: Default is False, if set True, all variable keys in rename mapping
+            will be checked, if they are available in data source
+            'auto_prefix_for_duplicate': bool: Default is True, if set True, all variable names will be prefixed with
+            data source name and delimiter if any duplicates of variable names are detected in an output after renaming
+            'auto_prefix_delimiter': str: Default is ':', delimiter between data source name and variable name
         """
         # Extract all data sources and outputs to dict (values as instance(s)), also for nested class, e.g. Beckhoff
         self._data_sources_mapping = {
@@ -79,53 +82,43 @@ class DataLoggerBase(ABC):
         }
 
         # Check rename mapping of data sources and outputs
-        if data_rename_mapping is None:
-            self._data_rename_mapping = None
-        else:
-            # Check data source name
-            for ds_name, output_dict in data_rename_mapping.items():
-                if ds_name in self._data_sources_mapping.keys():
-                    # Check data output name
-                    for do_name, mapping in output_dict.items():
-                        if do_name in self._data_outputs_mapping.keys():
-                            # Check mapping keys
-                            if kwargs.get('data_rename_mapping_explicit', False):
-                                for key in mapping.keys():
-                                    if key not in self._data_sources_mapping[ds_name].all_variable_names:
-                                        raise ValueError(
-                                            f"Explicit checking activated: Invalid variable name '{key}' for data "
-                                            f"source '{ds_name}' data output '{do_name}' for rename mapping"
-                                        )
-                        else:
-                            raise ValueError(f"Invalid data output name '{do_name}' for rename mapping")
-                else:
-                    raise ValueError(f"Invalid data source name '{ds_name}' for rename mapping")
-            # Checking complete
-            self._data_rename_mapping = data_rename_mapping
-            logger.info(f"Data rename activated, using mapping: \n{self._data_rename_mapping}")
+        if data_rename_mapping is not None:
+            self._check_data_rename_mapping_input(
+                data_rename_mapping=data_rename_mapping,
+                explicit=kwargs.get('data_rename_mapping_explicit', False)
+            )
+
+        # Init the data rename mapping
+        self._data_rename_mapping = self._init_data_rename_mapping(
+            data_rename_mapping=data_rename_mapping if data_rename_mapping is not None else {},
+        )
+
+        # Find duplicates of variable names after renaming for all data outputs
+        self._all_duplicates = self._get_duplicates_in_data_rename_mapping(
+            data_rename_mapping=self._data_rename_mapping)
+
+        # Auto prefix for duplicate variable names
+        if self._all_duplicates:
+            for do_name, dup in self._all_duplicates.items():
+                logger.info(
+                    f"With the current data rename mapping, duplicates of variable names are detected in data output "
+                    f"'{do_name}' with following same variable names from data sources: {dup}")
+            if kwargs.get('auto_prefix_for_duplicate', True):
+                logger.info(f'Auto-prefixing for duplicate variable names ...')
+                self._data_rename_mapping = self._prefix_data_rename_mapping(
+                    all_duplicates=self._all_duplicates, delimiter=kwargs.get('auto_prefix_delimiter', ':')
+                )
+            else:
+                logger.warning(
+                    f'Auto-prefixing for duplicate variable names deactivated, this may cause error by data logging!')
 
         # All variable names from all data sources, this will be set to DataOutput
-        if self._data_rename_mapping is None:
-            # Without rename
-            self._all_variable_names_dict = {
-                ds_name: {
-                    do_name: tuple(ds.all_variable_names)  # Origin names without rename
-                    for do_name in self._data_outputs_mapping.keys()
-                }
-                for ds_name, ds in self._data_sources_mapping.items()
+        self._all_variable_names_dict = {
+            ds_name: {
+                do_name: tuple(mapping.values()) for do_name, mapping in output_dict.items()
             }
-        else:
-            # With rename
-            self._all_variable_names_dict = {
-                ds_name: {
-                    do_name: tuple(
-                        self._data_rename_mapping.get(ds_name, {}).get(do_name, {}).get(var, var)  # Rename
-                        for var in ds.all_variable_names
-                    )
-                    for do_name in self._data_outputs_mapping.keys()
-                }
-                for ds_name, ds in self._data_sources_mapping.items()
-            }
+            for ds_name, output_dict in self._data_rename_mapping.items()
+        }
 
         # Set all_variable_names for each DataOutput
         for do_name, do in self._data_outputs_mapping.items():
@@ -152,6 +145,88 @@ class DataLoggerBase(ABC):
             else:
                 pass
 
+    def _check_data_rename_mapping_input(self, data_rename_mapping: dict, explicit: bool):
+        """Check input dict of data rename mapping"""
+        def _check_data_source_name(data_source_name):
+            """Check if data source name available in data sources"""
+            if data_source_name not in self._data_sources_mapping.keys():
+                raise ValueError(f"Invalid data source name '{data_source_name}' for rename mapping")
+
+        def _check_data_output_name(data_output_name):
+            """Check if data output name available in data outputs"""
+            if data_output_name not in self._data_outputs_mapping.keys():
+                raise ValueError(f"Invalid data output name '{data_output_name}' for rename mapping")
+
+        def _explicit_check_rename_mapping(data_source_name, rename_mapping):
+            """Explicit check if all keys in the rename mapping are available in data source"""
+            for key in rename_mapping.keys():
+                if key not in self._data_sources_mapping[data_source_name].all_variable_names:
+                    raise ValueError(
+                        f"Explicit rename mapping check activated: Variable '{key}' not available in data source "
+                        f"'{data_source_name}'"
+                    )
+
+        # Check data source, data output, and mapping
+        for ds_name, output_dict in data_rename_mapping.items():
+            _check_data_source_name(ds_name)
+            for do_name, mapping in output_dict.items():
+                _check_data_output_name(do_name)
+                if explicit:
+                    _explicit_check_rename_mapping(ds_name, mapping)
+
+    def _init_data_rename_mapping(self, data_rename_mapping: dict) -> dict[str, dict[str, dict[str, str]]]:
+        """Init data rename mapping for all data sources to all data outputs, if the rename mapping for a variable
+        name is unavailable, use its original name in the data source, the return has the same structure as
+        data_rename_mapping"""
+        return {
+            ds_name: {
+                do_name: {
+                    var: data_rename_mapping.get(ds_name, {}).get(do_name, {}).get(var, var)
+                    for var in ds.all_variable_names
+                }
+                for do_name in self._data_outputs_mapping.keys()
+            }
+            for ds_name, ds in self._data_sources_mapping.items()
+        }
+
+    def _get_duplicates_in_data_rename_mapping(self, data_rename_mapping: dict) -> dict[str, dict[str, list[str]]]:
+        """Get duplicates in data rename mapping for all data outputs"""
+        all_duplicates = {}  # {<do_name1>: {<var_rename1>: [<ds_name1>, <ds_name2>, ...], ...}, ...}
+
+        # Search duplicates for each data output
+        for do_name in self._data_outputs_mapping.keys():
+            var_locs = {}
+            for ds_name, output_dict in data_rename_mapping.items():
+                for var in output_dict[do_name].values():
+                    if var not in var_locs:
+                        var_locs[var] = []  # Init an empty list to save locations for this key
+                    var_locs[var].append(ds_name)
+            # Duplicates for this data output
+            do_duplicates = {key: locs for key, locs in var_locs.items() if len(locs) > 1}
+            # Save duplicates to overall dict
+            if do_duplicates:
+                all_duplicates[do_name] = do_duplicates
+
+        return all_duplicates
+
+    def _prefix_data_rename_mapping(
+            self,
+            all_duplicates: dict[str, dict[str, list[str]]],
+            delimiter: str = ':'
+    ) -> dict[str, dict[str, dict[str, str]]]:
+        """Prefix the data rename mapping for data outputs with duplicate in data sources"""
+        return {
+            ds_name: {
+                do_name: {
+                    # Keep the original do_name if no duplicates, else prefix with the ds_name
+                    key: var if do_name not in all_duplicates.keys() else f'{ds_name}{delimiter}{var}'
+                    for key, var in mapping.items()
+                }
+                for do_name, mapping in output_dict.items()
+            }
+            for ds_name, output_dict in self._data_rename_mapping.items()
+        }
+
     def read_data_all_sources(self) -> dict[str, dict]:
         """Read data from all data sources"""
         return {
@@ -163,18 +238,11 @@ class DataLoggerBase(ABC):
         """Log data to all data outputs"""
         for do_name, do in self._data_outputs_mapping.items():
             # Unzip and rename key for the current output
-            if self._data_rename_mapping is None:
-                unzipped_data = {
-                    var: value
-                    for ds_name, ds_data in data.items()
-                    for var, value in ds_data.items()
-                }
-            else:
-                unzipped_data = {
-                    self._data_rename_mapping.get(ds_name, {}).get(do_name, {}).get(var, var): value
-                    for ds_name, ds_data in data.items()
-                    for var, value in ds_data.items()
-                }
+            unzipped_data = {
+                self._data_rename_mapping[ds_name][do_name][var]: value
+                for ds_name, ds_data in data.items()
+                for var, value in ds_data.items()
+            }
             # Add log time as settings
             if do.log_time_required:
                 # This data output requires log time
@@ -274,39 +342,3 @@ class DataLoggerTimeTrigger(DataLoggerBase):
             logger.info("Data logging completed")
         except KeyboardInterrupt:
             logger.warning("Data logging stopped manually")
-
-
-if __name__ == "__main__":
-    # Init data sources
-    data_source_1 = DataSource.RandomDataSource(size=5, key_missing_rate=0, value_missing_rate=0.5)
-    data_source_2 = DataSource.RandomStringSource(size=5, str_length=5, key_missing_rate=0.5, value_missing_rate=0.5)
-
-    # Init outputs
-    data_output_1 = DataOutput.DataOutputCsv(file_name='Test/csv_logger_1.csv')
-    data_output_2 = DataOutput.DataOutputCsv(file_name='Test/csv_logger_2.csv', csv_writer_settings={'delimiter': '\t'})
-
-    data_logger = DataLoggerTimeTrigger(
-        data_sources_mapping={
-            'Sou1': data_source_1,
-            'Sou2': data_source_2,
-        },
-        data_outputs_mapping={
-            'Log1': data_output_1,
-            'Log2': data_output_2,
-        },
-        data_rename_mapping={
-            'Sou1': {
-                'Log1': {'RandData0': 'RandData0InLog1'},
-                'Log2': {'RandData1': 'RandData1InLog2', 'RandData2': 'RandData2InLog2'},
-            },
-            'Sou2': {
-                'Log2': {'RandStr0': 'RandStr000'},
-            }
-        }
-    )
-    print(f"Data sources mapping: {data_logger.data_sources_mapping}")
-    print(f"Data outputs mapping: {data_logger.data_outputs_mapping}")
-    data_logger.run_data_logging(
-        interval=2,
-        duration=10
-    )

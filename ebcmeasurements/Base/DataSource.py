@@ -55,7 +55,7 @@ class RandomDataSource(DataSourceBase):
         self.value_missing_rate = value_missing_rate
         self._all_variable_names = tuple(f'RandData{n}' for n in range(self.size))  # Define all data names
 
-    def read_data(self) -> dict:
+    def read_data(self) -> dict[str, float]:
         """Generate random data for each variable name, randomly drop some keys, and randomly insert None values"""
         return {
             name: (None if random.random() < self.value_missing_rate else random.uniform(0.0, 100.0))
@@ -78,7 +78,7 @@ class RandomStringSource(RandomDataSource):
         self.str_length = str_length
         self._all_variable_names = tuple(f'RandStr{n}' for n in range(self.size))  # Re-define all data names
 
-    def read_data(self) -> dict:
+    def read_data(self) -> dict[str, str]:
         def generate_random_string(length: int) -> str:
             """Generate random string with defined length"""
             chars = '1234567890AaBbCcDdEeFf'
@@ -91,13 +91,22 @@ class RandomStringSource(RandomDataSource):
         }
 
 
-if __name__ == "__main__":
-    random_data_source = RandomDataSource(size=10, key_missing_rate=0.5, value_missing_rate=0.5)
-    print(f"All variable names of random data source: {random_data_source.all_variable_names}")
-    for _ in range(10):
-        print(random_data_source.read_data())
+class RandomBooleanSource(RandomDataSource):
+    def __init__(
+            self, size: int = 10, key_missing_rate: float = 0.5, value_missing_rate: float = 0.5):
+        """
+        Random boolean source to simulate data generation
+        :param size: Number of variables to generate
+        :param key_missing_rate: Probability of a key being excluded from the final dictionary
+        :param value_missing_rate: Probability of assigning None to a value instead of a random float
+        """
+        super().__init__(size, key_missing_rate, value_missing_rate)
+        self._all_variable_names = tuple(f'RandBool{n}' for n in range(self.size))  # Re-define all data names
 
-    random_str_source = RandomStringSource(size=10, str_length=8, key_missing_rate=0.5, value_missing_rate=0.5)
-    print(f"All variable names of random string source: {random_str_source.all_variable_names}")
-    for _ in range(10):
-        print(random_str_source.read_data())
+    def read_data(self) -> dict[str, bool]:
+        """Generate random data for each variable name, randomly drop some keys, and randomly insert None values"""
+        return {
+            name: (None if random.random() < self.value_missing_rate else random.choice([True, False]))
+            for name in self._all_variable_names
+            if random.random() >= self.key_missing_rate
+        }

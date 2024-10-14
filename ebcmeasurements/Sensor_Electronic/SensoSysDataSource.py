@@ -23,7 +23,7 @@ class SensoSysDataSource(DataSource.DataSourceBase):
         """
         Initialize SensoSysDataSource instance
         :param port: Port number to connect, if None, start a configuration guidance
-        :param output_dir: Output dir to save initialization config and found devices, if None, they will not be saved
+        :param output_dir: Output dir to save information of found devices, if None, they will not be saved
         :param all_devices_ids: All possible device's IDs to scan, if None, scan ID from 0 to 255
         :param time_out: Timeout in seconds for serial communication
         """
@@ -36,9 +36,9 @@ class SensoSysDataSource(DataSource.DataSourceBase):
 
         # Create output dir if it is not None
         if self.output_dir is None:
-            logger.info(f"No output dir set, results of initialization will not be saved")
+            logger.info(f"No output dir set, initialization information will not be saved")
         else:
-            logger.info(f"Results of initialization will be saved to: {self.output_dir}")
+            logger.info(f"Initialization information will be saved to: {self.output_dir}")
             if not os.path.exists(self.output_dir):
                 os.makedirs(self.output_dir)
 
@@ -108,7 +108,7 @@ class SensoSysDataSource(DataSource.DataSourceBase):
             logger.error(f"The COM port '{self.port}' is unavailable, exiting ...")
             sys.exit(1)
 
-    def _scan_devices(self, ids: list[int]) -> dict[str: dict]:
+    def _scan_devices(self, ids: list[int]) -> dict[str, dict]:
         """Scan devices by ids"""
         available_devices = {}
         for _id in ids:
@@ -253,31 +253,3 @@ class SensoSysDataSource(DataSource.DataSourceBase):
         else:
             logger.error(f"Invalid input '{input_str}', it can only be 'y' or 'n', exiting ...")
             sys.exit(1)
-
-
-if __name__ == '__main__':
-    from ebcmeasurements.Base import DataOutput, DataLogger
-
-    # Init SensoSysDataSource
-    senso_sys_source = SensoSysDataSource(
-        port=None,
-        output_dir='Test',
-        all_devices_ids=None
-    )
-    print(f"All data names of senso_sys_source: {senso_sys_source.all_variable_names}")
-
-    # Init csv output
-    csv_output = DataOutput.DataOutputCsv(file_name='Test/csv_logger.csv')
-
-    # Init DataLogger
-    time_logger = DataLogger.DataLoggerTimeTrigger(
-        data_sources_mapping={'senso_sys': senso_sys_source},
-        data_outputs_mapping={'csv_output': csv_output},
-        data_rename_mapping=None,
-        data_rename_mapping_explicit=False
-    )
-    # Run DataLogger
-    time_logger.run_data_logging(
-        interval=5,
-        duration=None
-    )

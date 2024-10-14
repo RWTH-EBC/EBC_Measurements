@@ -80,7 +80,7 @@ class DataOutputCsv(DataOutputBase):
     def __init__(
             self,
             file_name: str,
-            csv_writer_settings: dict | None = None
+            csv_writer_settings: 'DataOutputCsv.CsvWriterSettings' = None
     ):
         """
         Initialize data output instance for csv data
