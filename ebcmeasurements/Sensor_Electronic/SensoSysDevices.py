@@ -31,7 +31,6 @@ import serial  # Pyserial
 import serial.tools.list_ports
 import sys
 import subprocess
-import time
 import logging.config
 # Load logging configuration from file
 logger = logging.getLogger(__name__)
@@ -143,7 +142,7 @@ class SensoSys:
             new_type_code: str,
             new_baud_rate: int,
             set_chksum: str
-    ) -> dict[str: int] | None:
+    ) -> dict[str, int] | None:
         """
         lp1: Set a configuration
 
@@ -194,7 +193,7 @@ class SensoSys:
             }
         )
 
-    def read_configuration(self, address_id: int) -> dict[str: str | int] | None:
+    def read_configuration(self, address_id: int) -> dict[str, str | int] | None:
         """
         lp2: Read the configuration
 
@@ -223,7 +222,7 @@ class SensoSys:
             }
         )
 
-    def read_expired_calibration_date(self, address_id: int) -> dict[str: str | int] | None:
+    def read_expired_calibration_date(self, address_id: int) -> dict[str, str | int] | None:
         """
         lp4: Read an expired calibration date
 
@@ -250,7 +249,7 @@ class SensoSys:
             }
         )
 
-    def read_serial_number(self, address_id: int) -> dict[str: str | int] | None:
+    def read_serial_number(self, address_id: int) -> dict[str, str | int] | None:
         """
         lp6: Read a serial number
 
@@ -275,7 +274,7 @@ class SensoSys:
             }
         )
 
-    def read_instrument_name(self, address_id: int) -> dict[str: str | int] | None:
+    def read_instrument_name(self, address_id: int) -> dict[str, str | int] | None:
         """
         lp10: Read a name of an instrument
 
@@ -300,7 +299,7 @@ class SensoSys:
             }
         )
 
-    def read_battery_state(self, address_id: int) -> dict[str: str | int] | None:
+    def read_battery_state(self, address_id: int) -> dict[str, str | int] | None:
         """
         lp12: Read a state of battery
 
@@ -326,7 +325,7 @@ class SensoSys:
             }
         )
 
-    def set_sleeping_mode(self, address_id: int, activate: bool) -> dict[str: int] | None:
+    def set_sleeping_mode(self, address_id: int, activate: bool) -> dict[str, int] | None:
         """
         lp13: Sleeping mode settings
 
@@ -356,7 +355,7 @@ class SensoSys:
             }
         )
 
-    def senso_hygbar_read_configuration(self, address_id: int) -> dict[str: str | int | bool] | None:
+    def senso_hygbar_read_configuration(self, address_id: int) -> dict[str, str | int | bool] | None:
         """
         lp2': SensoHygBar - Read the configuration
 
@@ -442,7 +441,7 @@ class SensoSys:
             sensor_config=senso_config
         )
 
-    def senso_therm_read_configuration(self, address_id: int) -> dict[str: str | int | bool] | None:
+    def senso_therm_read_configuration(self, address_id: int) -> dict[str, str | int | bool] | None:
         """
         lp2': SensoTherm - Read the configuration
 
@@ -492,7 +491,7 @@ class SensoSys:
         else:
             return None
 
-    def senso_therm_read_indicator(self, address_id: int, channel: int) -> dict[str: str | int] | None:
+    def senso_therm_read_indicator(self, address_id: int, channel: int) -> dict[str, str | int] | None:
         """
         lp31: SensoTherm - Read a probe indicator from N-channel
 
@@ -522,7 +521,7 @@ class SensoSys:
             response_type='senso_therm',
         )
 
-    def senso_therm_read_temperatures_enabled_channels(self, address_id: int) -> dict[str: float] | None:
+    def senso_therm_read_temperatures_enabled_channels(self, address_id: int) -> dict[str, float] | None:
         """
         lp35: SensoTherm: Read temperatures from enabled channels
 
@@ -552,7 +551,7 @@ class SensoSys:
             response_type='senso_therm',
         )
 
-    def senso_therm_read_temperature_specified_channel(self, address_id: int, channel: int) -> dict[str: float] | None:
+    def senso_therm_read_temperature_specified_channel(self, address_id: int, channel: int) -> dict[str, float] | None:
         """
         lp36: Read a temperature from specified channel
 
@@ -581,7 +580,7 @@ class SensoSys:
             response_type='senso_therm',
         )
 
-    def senso_anemo_read_configuration(self, address_id: int) -> dict[str: str | int | bool] | None:
+    def senso_anemo_read_configuration(self, address_id: int) -> dict[str, str | int | bool] | None:
         """
         lp2': SensoAnemo - Read the configuration
 
@@ -624,7 +623,7 @@ class SensoSys:
         else:
             return None
 
-    def senso_anemo_read_indicator(self, address_id: int) -> dict[str: str | int] | None:
+    def senso_anemo_read_indicator(self, address_id: int) -> dict[str, str | int] | None:
         """
         lp42: SensoAnemo - Read the probe indicator
 
@@ -650,7 +649,7 @@ class SensoSys:
             response_type='senso_anemo',
         )
 
-    def senso_anemo_set_fast_mode(self, address_id: int, activate: bool) -> dict[str: int] | None:
+    def senso_anemo_set_fast_mode(self, address_id: int, activate: bool) -> dict[str, int] | None:
         """
         lp49: SensoAnemo - Fast mode settings (addressed command)
 
@@ -704,7 +703,7 @@ class SensoSys:
         _ = self._get_response_by_hex_command(hex_command=command)
         return None
 
-    def senso_anemo_read_measurement_data(self, address_id: int) -> dict[str: float] | None:
+    def senso_anemo_read_measurement_data(self, address_id: int) -> dict[str, float] | None:
         """
         lp51: SensoAnemo - Read a measurement data
 
@@ -737,7 +736,7 @@ class SensoSys:
             parse: dict[str: tuple[int, int]],
             response_type: str = 'general',
             **kwargs
-    ) -> dict[str: str | int | float] | None:
+    ) -> dict[str, str | int | float] | None:
         """
         Decode the response of device
         :param response: Response in utf-8
@@ -754,7 +753,7 @@ class SensoSys:
             """Get the baud rate from baud rate settings"""
             return SensoSys._baud_rate_settings.get(code)
 
-        def _decode_general(rsp: str, par: dict[str: tuple[int, int]]) -> dict[str | int]:
+        def _decode_general(rsp: str, par: dict[str, tuple[int, int]]) -> dict[str, str | int]:
             """General response decoder"""
             decoded_response = {}
             for key, (index_start, index_stop) in par.items():
@@ -766,7 +765,7 @@ class SensoSys:
                     decoded_response[key] = rsp[index_start: index_stop + 1]
             return decoded_response
 
-        def _decode_senso_anemo(rsp: str, par: dict[str: tuple[int, int]]) -> dict[str | int | float]:
+        def _decode_senso_anemo(rsp: str, par: dict[str, tuple[int, int]]) -> dict[str, str | int | float]:
             """Response decoder for SensoAnemo"""
             decoded_response = {}
             for key, (index_start, index_stop) in par.items():
@@ -784,7 +783,7 @@ class SensoSys:
                     decoded_response[key] = rsp[index_start: index_stop + 1]
             return decoded_response
 
-        def _decode_senso_therm(rsp: str, par: dict[str: tuple[int, int]]) -> dict[str | int | float]:
+        def _decode_senso_therm(rsp: str, par: dict[str, tuple[int, int]]) -> dict[str, str | int | float]:
             """Response decoder for SensoTherm"""
             decoded_response = {}
             for key, (index_start, index_stop) in par.items():
@@ -809,7 +808,7 @@ class SensoSys:
             return decoded_response
 
         def _decode_senso_hygbar(
-                rsp: str, par: dict[str: tuple[int, int]], sensor_config: str) -> dict[str | int | float]:
+                rsp: str, par: dict[str, tuple[int, int]], sensor_config: str) -> dict[str, str | int | float]:
             """Response decoder for SensoHigBar"""
             decoded_response = {}
             for key, (index_start, index_stop) in par.items():
@@ -945,145 +944,3 @@ def scan_com_ports() -> list[str] | None:
 def pop_system_device_management():
     """Pop the Device Manager 'devmgmt.msc'"""
     subprocess.Popen('devmgmt.msc', shell=True)
-
-
-def _test(
-        port: str,
-        scan_available_devices: bool,
-        addresses_senso_hygbar: list[int] | None,
-        addresses_senso_therm: list[int] | None,
-        addresses_senso_anemo: list[int] | None,
-        measurement_data_requirement: int = 5,
-        measurement_data_requirement_interval: float = 1.0
-):
-    """
-    Test class SensoSys
-    All 'set' methods will not be tested: lp1, lp13, lp49, lp49a
-    """
-
-    def scan_devices(senso_sys: SensoSys) -> dict[str: str]:
-        """Scan all available devices connected"""
-        available_devices = {}
-        for scan_id in range(0, 256):
-            print(f"Scanning id = {scan_id} ...")
-            device_serial_number = senso_sys.read_serial_number(scan_id)
-            if device_serial_number is not None:
-                print(f"Found device with ID = {scan_id}")
-                available_devices.update({
-                    str(scan_id): {
-                        'serial_number': device_serial_number,
-                        'instrument_name': senso_sys.read_instrument_name(scan_id),
-                        'calibration_expired_date': senso_sys.read_expired_calibration_date(scan_id),
-                        'battery_state': senso_sys.read_battery_state(scan_id),
-                        'configuration': senso_sys.read_configuration(scan_id),
-                    }
-                })
-        return available_devices
-
-    def general_tests(senso_sys: SensoSys, dev_id: int):
-        """Test for general commands"""
-        print(f"ID '{dev_id}' - lp2 'read_configuration': {senso_sys.read_configuration(dev_id)}")
-        print(f"ID '{dev_id}' - lp4 'read_expired_calibration_date': {senso_sys.read_expired_calibration_date(dev_id)}")
-        print(f"ID '{dev_id}' - lp6 'read_serial_number': {senso_sys.read_serial_number(dev_id)}")
-        print(f"ID '{dev_id}' - lp10 'read_instrument_name': {senso_sys.read_instrument_name(dev_id)}")
-        print(f"ID '{dev_id}' - lp12 'read_battery_state': {senso_sys.read_battery_state(dev_id)}")
-
-    # Init the SensoSys
-    print("\nInitializing SensoSys ...")
-    test_senso_sys = SensoSys(port=port, time_out=0.05)
-
-    # Scan available devices
-    if scan_available_devices:
-        print("\nScanning all available devices ...")
-        all_available_devices = scan_devices(senso_sys=test_senso_sys)
-        print(f"All available devices: \n{all_available_devices}")
-        print(f"Number of available devices: {len(all_available_devices)}")
-
-    # Test SensoHygBar
-    if addresses_senso_hygbar is not None:
-        for _id in addresses_senso_hygbar:
-            print(f"\nStart testing SensorHygBar ID = {_id} ...")
-            # Run general tests
-            general_tests(senso_sys=test_senso_sys, dev_id=_id)
-            # Run specific tests
-            print(
-                f"ID '{_id}' - lp2' 'senso_hygbar_read_configuration': "
-                f"{test_senso_sys.senso_hygbar_read_configuration(_id)}")
-            _sensor_config = test_senso_sys.senso_hygbar_read_configuration(_id)['sensor_config']
-            for req in range(1, measurement_data_requirement + 1):
-                print(
-                    f"ID '{_id}', Req. {req} - lp22 'senso_hygbar_read_measurement_data': "
-                    f"{test_senso_sys.senso_hygbar_read_measurement_data(_id, _sensor_config)}"
-                )
-                time.sleep(measurement_data_requirement_interval)
-
-    # Test SensoTherm
-    if addresses_senso_therm is not None:
-        for _id in addresses_senso_therm:
-            print(f"\nStart testing SensoTherm ID = {_id} ...")
-            # Run general tests
-            general_tests(senso_sys=test_senso_sys, dev_id=_id)
-            # Run specific tests
-            print(
-                f"ID '{_id}' - lp2' 'senso_therm_read_configuration': "
-                f"{test_senso_sys.senso_therm_read_configuration(_id)}")
-            for ch in range(1, 5):
-                print(
-                    f"ID '{_id}', Ch. '{ch}' - lp31 'senso_therm_read_indicator': "
-                    f"{test_senso_sys.senso_therm_read_indicator(_id, ch)}"
-                )
-            for req in range(1, measurement_data_requirement + 1):
-                print(
-                    f"ID '{_id}', Req. {req} - lp35 'senso_therm_read_temperatures_enabled_channels': "
-                    f"{test_senso_sys.senso_therm_read_temperatures_enabled_channels(_id)}")
-                time.sleep(measurement_data_requirement_interval)
-            for req in range(1, measurement_data_requirement + 1):
-                for ch in range(1, 5):
-                    print(
-                        f"ID '{_id}', Req. {req}, Ch. '{ch}' - lp36 'senso_therm_read_temperature_specified_channel': "
-                        f"{test_senso_sys.senso_therm_read_temperature_specified_channel(_id, ch)}"
-                    )
-                time.sleep(measurement_data_requirement_interval)
-
-    # Test SensoAnemo
-    if addresses_senso_anemo is not None:
-        for _id in addresses_senso_anemo:
-            print(f"\nStart testing SensoAnemo ID = {_id} ...")
-            # Run general tests
-            general_tests(senso_sys=test_senso_sys, dev_id=_id)
-            # Run special tests
-            print(
-                f"ID '{_id}' - lp2' 'senso_anemo_read_configuration': "
-                f"{test_senso_sys.senso_anemo_read_configuration(_id)}")
-            print(
-                f"ID '{_id}' - lp42 'senso_anemo_read_indicator': {test_senso_sys.senso_anemo_read_indicator(_id)}")
-            for req in range(1, measurement_data_requirement + 1):
-                print(
-                    f"ID '{_id}', Req. {req} - lp51 'senso_anemo_read_measurement_data': "
-                    f"{test_senso_sys.senso_anemo_read_measurement_data(_id)}")
-                time.sleep(measurement_data_requirement_interval)
-
-    # Close the port, delete the instance
-    print("\nClosing serial connection ...")
-    test_senso_sys.close_serial_connection()
-    del test_senso_sys
-    print("\nTesting SensoSys finished")
-
-
-if __name__ == '__main__':
-    # Scan available COM ports
-    available_com_ports = scan_com_ports()
-    print(f"Available COM ports: {available_com_ports}")
-
-    # Test SensoSys
-    run_test = True
-    if run_test:
-        _test(
-            port='COM6',
-            scan_available_devices=True,
-            addresses_senso_hygbar=[55, 57, 73],
-            addresses_senso_therm=[72],
-            addresses_senso_anemo=[12, 36, 37, 71],
-            measurement_data_requirement=5,
-            measurement_data_requirement_interval=0.5
-        )
