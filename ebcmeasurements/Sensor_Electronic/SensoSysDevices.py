@@ -733,7 +733,7 @@ class SensoSys:
     @staticmethod
     def _decode_response(
             response: str,
-            parse: dict[str: tuple[int, int]],
+            parse: dict[str, tuple[int, int]],
             response_type: str = 'general',
             **kwargs
     ) -> dict[str, str | int | float] | None:
