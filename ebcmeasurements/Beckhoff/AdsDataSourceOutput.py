@@ -8,7 +8,6 @@ What is Automation Device Specification (ADS):
 from ebcmeasurements.Base import DataSourceOutput
 import pyads
 import time
-import os
 import sys
 import logging.config
 # Load logging configuration from file

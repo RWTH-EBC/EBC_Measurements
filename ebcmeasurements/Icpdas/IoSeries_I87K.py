@@ -3,10 +3,16 @@ Module for I-87K Series
 
 Online user manual: http://ftp.icpdas.com/pub/cd/8000cd/napdos/dcon/io_module/87k_modules.htm
 """
-from ebcmeasurements.Icpdas import Base
+from ebcmeasurements.Icpdas import IoBase
 
 
-class IoUnit(Base.EthernetIoUnit):
+class IoUnit(IoBase.EthernetIoUnit):
+    # Class attribute: I/O unit specifications
+    _specifications = {
+        'ET-87P4': {'io_slot': 4},
+        'ET-87P8': {'io_slot': 8},
+    }
+
     def __init__(self, host: str, port: int, time_out: float = 0.5):
         super().__init__(host, port, time_out)
 
@@ -28,11 +34,15 @@ class IoUnit(Base.EthernetIoUnit):
             parse={'address_id': (1, 2), 'module_name': (3, -2)}
         )
 
+    @property
+    def specifications(self) -> dict[str, dict[str, int | str]]:
+        return self._specifications
 
-class IoModule87013W(Base.EthernetIoModule):
+
+class IoModule87013W(IoBase.EthernetIoModule):
     """4-Channel RTD Analog Input Module"""
-    def __init__(self, io_unit: IoUnit):
-        super().__init__(io_unit)
+    def __init__(self, io_unit: IoUnit, address_id: int):
+        super().__init__(io_unit, address_id, slot_idx=address_id - 2)
         self._type_code_settings = {
             '20': 'Platinum 100, a = 0.00385, -100 to 100 degC (default)',
             '21': 'Platinum 100, a = 0.00385, 0 to 100 degC',
@@ -50,16 +60,18 @@ class IoModule87013W(Base.EthernetIoModule):
             '80': 'Pt 100, a = 0.00385, -200 to +600 degC',
             '81': 'Pt 100, a = 0.003916, -200 to +600 degC',
         }
+        self.io_type = 'AI'
+        self.io_channel = 4
 
-    def read_analog_input_all_channels(self, address_id: int) -> dict[str, float | None]:
-        dec_rsp = super().read_analog_input_all_channels(address_id)  # Get the decoded response
+    def read_analog_input_all_channels(self) -> dict[str, float | None]:
+        dec_rsp = super().read_analog_input_all_channels()  # Get the decoded response
         return self._split_data_string_to_values(dec_rsp.pop('data'), none_value='-0000') if dec_rsp is not None else None
 
 
-class IoModule87019RW(Base.EthernetIoModule):
+class IoModule87019RW(IoBase.EthernetIoModule):
     """8-channel Universal Analog Input Module with High Overvoltage Protection"""
-    def __init__(self, io_unit: IoUnit):
-        super().__init__(io_unit)
+    def __init__(self, io_unit: IoUnit, address_id: int):
+        super().__init__(io_unit, address_id, slot_idx=address_id - 2)
         self._type_code_settings = {
             '00': '-15mV to +15mV',
             '01': '-50mV to +50mV',
@@ -87,7 +99,16 @@ class IoModule87019RW(Base.EthernetIoModule):
             '18': 'M Type',
             '19': 'L Type DIN43710',
         }
+        self.io_type = 'AI'
+        self.io_channel = 8
 
-    def read_analog_input_all_channels(self, address_id: int) -> dict[str, float | None]:
-        dec_rsp = super().read_analog_input_all_channels(address_id)  # Get the decoded response
+    def read_analog_input_all_channels(self) -> dict[str, float | None]:
+        dec_rsp = super().read_analog_input_all_channels()  # Get the decoded response
         return self._split_data_string_to_values(dec_rsp.pop('data')) if dec_rsp is not None else None
+
+
+# I/O module map <name by request>: <class of I/O module>
+IO_MODULE_MAP = {
+    '87013': {'cls': IoModule87013W},
+    '87019R': {'cls': IoModule87019RW},
+}

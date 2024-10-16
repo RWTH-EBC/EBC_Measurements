@@ -118,13 +118,17 @@ class EthernetIoUnit(EthernetIoBase, ABC):
 
 class EthernetIoModule(EthernetIoBase, ABC):
     """Base class for I/O module"""
-    def __init__(self, io_unit: EthernetIoUnit):
+    def __init__(self, io_unit: EthernetIoUnit, address_id: int, slot_idx: int = None):
         self.io_unit = io_unit
+        self.address_id = address_id  # Address ID
+        self.slot_idx = slot_idx  # Slot index
         self._type_code_settings = None  # Dict for type code settings
+        self.io_type = None  # I/O type, e.g. 'DI', 'DO', 'AI', 'AO'
+        self.io_channel = None  # Number of I/O channels in int
 
-    def read_configuration_status(self, address_id: int) -> dict[str, str] | None:
+    def read_configuration_status(self) -> dict[str, str] | None:
         """$AA2: Read module configuration"""
-        cmd = f"${self._to_hex(address_id)}2\r"
+        cmd = f"${self._to_hex(self.address_id)}2\r"
         rsp = self.io_unit.get_response_by_command(cmd)
         # Get decoded response
         dec_rsp = self.decode_response(
@@ -138,9 +142,9 @@ class EthernetIoModule(EthernetIoBase, ABC):
         else:
             return None
 
-    def read_analog_input_all_channels(self, address_id: int) -> dict[str, str | float | int]:
+    def read_analog_input_all_channels(self) -> dict[str, str | float | int]:
         """#AA: Read analog/counter inputs of all channels"""
-        cmd = f"#{self._to_hex(address_id)}\r"
+        cmd = f"#{self._to_hex(self.address_id)}\r"
         rsp = self.io_unit.get_response_by_command(cmd)
         return self.decode_response(
             response=rsp,
