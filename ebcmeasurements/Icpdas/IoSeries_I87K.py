@@ -14,7 +14,10 @@ class IoUnit(IoBase.EthernetIoUnit):
     }
 
     def __init__(self, host: str, port: int, time_out: float = 0.5):
-        super().__init__(host, port, time_out)
+        super().__init__(host, port, time_out)  # Init and connect socket
+        self.address_id = 1  # The address ID of the I/O unit is always 1
+        self.name = self.read_module_name(self.address_id)['module_name']  # Get the I/O unit name
+        self.io_slot = self._specifications[self.name]['io_slot']  # Get the number of I/O slots
 
     def read_firmware_version(self, address_id: int) -> dict[str, int | str]:
         """$AAF: Read firmware version, valid for CPU and I/O module"""
@@ -36,12 +39,14 @@ class IoUnit(IoBase.EthernetIoUnit):
 
     @property
     def specifications(self) -> dict[str, dict[str, int | str]]:
+        """I/O unit specifications"""
         return self._specifications
 
 
 class IoModule87013W(IoBase.EthernetIoModule):
     """4-Channel RTD Analog Input Module"""
     def __init__(self, io_unit: IoUnit, address_id: int):
+        # For ET-87PX series, the slot 0 has address ID of 2
         super().__init__(io_unit, address_id, slot_idx=address_id - 2)
         self._type_code_settings = {
             '20': 'Platinum 100, a = 0.00385, -100 to 100 degC (default)',
@@ -60,17 +65,20 @@ class IoModule87013W(IoBase.EthernetIoModule):
             '80': 'Pt 100, a = 0.00385, -200 to +600 degC',
             '81': 'Pt 100, a = 0.003916, -200 to +600 degC',
         }
-        self.io_type = 'AI'
-        self.io_channel = 4
+        self._io_type = 'AI'  # Analog input
+        self._io_channel = 4  # 4 channels
 
     def read_analog_input_all_channels(self) -> dict[str, float | None]:
+        """#AA: Read analog/counter inputs of all channels"""
         dec_rsp = super().read_analog_input_all_channels()  # Get the decoded response
-        return self._split_data_string_to_values(dec_rsp.pop('data'), none_value='-0000') if dec_rsp is not None else None
+        return self._split_data_string_to_values(
+            dec_rsp.pop('data'), none_value='-0000') if dec_rsp is not None else None
 
 
 class IoModule87019RW(IoBase.EthernetIoModule):
     """8-channel Universal Analog Input Module with High Overvoltage Protection"""
     def __init__(self, io_unit: IoUnit, address_id: int):
+        # For ET-87PX series, the slot 0 has address ID of 2
         super().__init__(io_unit, address_id, slot_idx=address_id - 2)
         self._type_code_settings = {
             '00': '-15mV to +15mV',
@@ -99,10 +107,11 @@ class IoModule87019RW(IoBase.EthernetIoModule):
             '18': 'M Type',
             '19': 'L Type DIN43710',
         }
-        self.io_type = 'AI'
-        self.io_channel = 8
+        self._io_type = 'AI'  # Analog input
+        self._io_channel = 8  # 8 channels
 
     def read_analog_input_all_channels(self) -> dict[str, float | None]:
+        """#AA: Read analog/counter inputs of all channels"""
         dec_rsp = super().read_analog_input_all_channels()  # Get the decoded response
         return self._split_data_string_to_values(dec_rsp.pop('data')) if dec_rsp is not None else None
 

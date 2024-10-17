@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 class EthernetIoBase(ABC):
     """Base class for I/O units and modules"""
     # Class attribute: baud rate settings
-    _baud_rate_settings = {
+    # Reference: http://ftp.icpdas.com/pub/cd/8000cd/napdos/dcon/io_module/dcon/8k87k/modules/baudratetable.htm
+    _baud_rate_settings = {  # <Configuration code>: <baud rate>
         '03': 1200,
         '04': 2400,
         '05': 4800,
@@ -50,8 +51,10 @@ class EthernetIoBase(ABC):
             decoded_response = {}
             for key, (index_start, index_stop) in par.items():
                 if key == 'address_id':
+                    # Decode hex address id to int
                     decoded_response[key] = int(rsp[index_start: index_stop + 1], 16)
                 elif key == 'baud_rate_code':
+                    # Decode baud rate code to baud rate
                     decoded_response['baud_rate'] = EthernetIoBase._baud_rate_settings.get(rsp[index_start: index_stop + 1])
                 else:
                     decoded_response[key] = rsp[index_start: index_stop + 1]
@@ -80,25 +83,17 @@ class EthernetIoUnit(EthernetIoBase, ABC):
         self.host = host
         self.port = port
         self.time_out = time_out
-        self.socket = None
-        # Establish socket connection
-        self._establish_socket_connection()
+        self.socket = self._establish_socket_connection()
+        logger.info(f"Socket connection established: {self.socket}")
 
-    def _establish_socket_connection(self) -> None:
+    def _establish_socket_connection(self) -> socket.socket:
         """Establish socket connection to I/O"""
         logger.info(f"Establishing socket connection to {self.host}:{self.port} ...")
-        if self.socket is None:
-            try:
-                self.socket = socket.create_connection(
-                    address=(self.host, self.port),
-                    timeout=self.time_out,
-                )
-                logger.info(f"Socket connection established: {self.socket}")
-            except TimeoutError as e:
-                logger.error(f"Socket connection error: {e}")
-                sys.exit(1)
-        else:
-            logger.info(f"Socket connection already established: {self.socket}")
+        try:
+            return socket.create_connection(address=(self.host, self.port), timeout=self.time_out)
+        except TimeoutError as e:
+            logger.error(f"Socket connection error: {e}")
+            sys.exit(1)
 
     def get_response_by_command(self, command: str, buffer_size: int = 1024) -> str:
         """Get response by writing a command"""
@@ -119,12 +114,14 @@ class EthernetIoUnit(EthernetIoBase, ABC):
 class EthernetIoModule(EthernetIoBase, ABC):
     """Base class for I/O module"""
     def __init__(self, io_unit: EthernetIoUnit, address_id: int, slot_idx: int = None):
-        self.io_unit = io_unit
-        self.address_id = address_id  # Address ID
-        self.slot_idx = slot_idx  # Slot index
-        self._type_code_settings = None  # Dict for type code settings
-        self.io_type = None  # I/O type, e.g. 'DI', 'DO', 'AI', 'AO'
-        self.io_channel = None  # Number of I/O channels in int
+        self.io_unit = io_unit  # Instance of I/O unit that contains this I/O module
+        self.address_id = address_id  # Address ID of the I/O module
+        self.slot_idx = slot_idx  # Slot index of the I/O module
+
+        # The following attributes must be configured in child class
+        self._type_code_settings = None  # Dict for type code settings of the I/O module
+        self._io_type = None  # I/O type of the I/O module, e.g. 'DI', 'DO', 'AI', 'AO'
+        self._io_channel = None  # Number of I/O channels of the I/O module in int
 
     def read_configuration_status(self) -> dict[str, str] | None:
         """$AA2: Read module configuration"""
@@ -137,6 +134,7 @@ class EthernetIoModule(EthernetIoBase, ABC):
         )
         # Process decoded response
         if dec_rsp is not None:
+            # Decode I/O type
             dec_rsp['type'] = self._type_code_settings.get(dec_rsp.pop('type_code'))
             return dec_rsp
         else:
@@ -151,9 +149,30 @@ class EthernetIoModule(EthernetIoBase, ABC):
             parse={'data': (1, -2)},
         )
 
+    def read_analog_input_specified_channel(self, channel: int) -> dict[str, str | float | int]:
+        """#AAN: Read analog/counter input of specified channel"""
+        cmd = f"#{self._to_hex(self.address_id)}{channel}\r"
+        rsp = self.io_unit.get_response_by_command(cmd)
+        return self.decode_response(
+            response=rsp,
+            parse={'data': (1, -2)},
+        )
+
+    def output_analog_value_specified_channel(self, channel: int, data: float) -> bool:
+        """#AAN(Data): Output analog value of specified channel"""
+        formatted_data = str("{:+06.3f}".format(data))
+        cmd = f"#{self._to_hex(self.address_id)}{channel}{formatted_data}\r"
+        rsp = self.io_unit.get_response_by_command(cmd)
+        return rsp == '>\r'
+
     @staticmethod
     def _split_data_string_to_values(data_string: str, none_value: str = None) -> dict[str, float | None]:
-        """Split data string to dict of channel numbers and values by using regular expression"""
+        """
+        Split data string to dict of channel numbers and values by using regular expression
+
+        :param data_string: Data to be split in string format
+        :param none_value: Value that must be converted to None, if None, all values are converted to float
+        """
         # Split the string with lookahead assertion, drop the first empty element
         str_values = re.split(pattern='(?=[+-])', string=data_string)[1:]
         if none_value is None:
@@ -162,5 +181,20 @@ class EthernetIoModule(EthernetIoBase, ABC):
         else:
             # Convert all values to float except none_value
             values = [float(v) if v != none_value else None for v in str_values]
-        # Return a dict with channel keys
+        # Return a dict with channel keys and values
         return {f'Ch{ch}': v for ch, v in enumerate(values)}
+
+    @property
+    def type_code_settings(self):
+        """Type code settings of the I/O module"""
+        return self._type_code_settings
+
+    @property
+    def io_type(self):
+        """Type of the I/O module, e.g. 'DI', 'DO', 'AI', 'AO'"""
+        return self._io_type
+
+    @property
+    def io_channel(self):
+        """Total channel number of the I/O module"""
+        return self._io_channel
