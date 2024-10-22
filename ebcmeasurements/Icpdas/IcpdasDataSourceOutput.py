@@ -114,8 +114,8 @@ class IcpdasDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
         # Update configuration info
         self._all_configs.update({'I/O unit': self._get_unit_configuration()})
         self._all_configs.update({
-            f'I/O module {slot_idx}': self._get_module_configuration(slot_idx)
-            for slot_idx in range(self.io_unit.io_slot)
+            f'I/O module {m.slot_idx}': self._get_module_configuration(m)
+            for m in self.io_modules
         })
         logger.info(f"Configurations of I/O unit and modules: {self._all_configs}")
 
@@ -133,7 +133,12 @@ class IcpdasDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
             for slot in range(self.io_unit.io_slot):
                 # Get the module name
                 address_id = slot + 2  # For ET-87PX series, the slot 0 has address ID of 2
-                module_name = self.io_unit.read_module_name(address_id)['module_name']
+                module_name_rsp = self.io_unit.read_module_name(address_id)  # Get the module name response
+                if module_name_rsp is None:
+                    # None response due to time out or empty slot
+                    continue  # Skip this slot
+                else:
+                    module_name = module_name_rsp['module_name']
                 # Determine the class based on the module name
                 cls = IoSeries_I87K.IO_MODULE_MAP[module_name]['cls']
                 # Implement the class
@@ -155,19 +160,18 @@ class IcpdasDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
             'firmware_version': self.io_unit.read_firmware_version(self.io_unit.address_id).get('firmware_version'),
         }
 
-    def _get_module_configuration(self, slot_idx: int) -> dict[str, str | int]:
+    def _get_module_configuration(self, io_module: IoBase.EthernetIoModule) -> dict[str, str | int]:
         """Get the configuration of an I/O module"""
         config = {
-            'address_id': self.io_modules[slot_idx].address_id,
-            'slot_idx': self.io_modules[slot_idx].slot_idx,
-            'name': self.io_unit.read_module_name(self.io_modules[slot_idx].address_id).get('module_name'),
-            'io_type': self.io_modules[slot_idx].io_type,
-            'io_channel': self.io_modules[slot_idx].io_channel,
-            'firmware_version': self.io_unit.read_firmware_version(self.io_modules[slot_idx].address_id).get(
-                'firmware_version'),
+            'address_id': io_module.address_id,
+            'slot_idx': io_module.slot_idx,
+            'name': self.io_unit.read_module_name(io_module.address_id).get('module_name'),
+            'io_type': io_module.io_type,
+            'io_channel': io_module.io_channel,
+            'firmware_version': self.io_unit.read_firmware_version(io_module.address_id).get('firmware_version'),
         }
-        # Update with I/O module status
-        config.update(self.io_modules[slot_idx].read_configuration_status())
+        # Update with I/O module status (multiple keys)
+        config.update(io_module.read_configuration_status())
         return config
 
     @property
