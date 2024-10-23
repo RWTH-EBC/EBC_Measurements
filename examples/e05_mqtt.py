@@ -90,6 +90,10 @@ def e05_mqtt():
     # row was logged if the values were already recorded (so that the buffer was cleared) or if no values were
     # available. In the file with on-message-trigger, data was logged only when a publication was detected.
 
+    # Stop the mqtt network to stop all threads of MqttDataSourceOutput instances
+    mqtt_source_output.mqtt_stop()
+    mqtt_source_on_msg.mqtt_stop()
+
 
 if __name__ == '__main__':
     e05_mqtt()

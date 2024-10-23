@@ -4,6 +4,7 @@ Module MqttDataSourceOutput: Interface of MQTT client to DataLogger
 from ebcmeasurements.Base import DataOutput, DataSourceOutput, DataLogger
 import paho.mqtt.client as mqtt
 from typing import TypedDict
+import threading
 import time
 import sys
 import logging.config
@@ -153,7 +154,7 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
 
     def __del__(self):
         """Destructor method to ensure MQTT disconnected"""
-        self._mqtt_stop()
+        self.mqtt_stop()
 
     def _mqtt_connect(self):
         """Try to connect to MQTT broker only once"""
@@ -163,7 +164,9 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
             try:
                 logger.info(f"Connecting to broker: {self.broker} ...")
                 self.system.connect(self.broker, self.port, self.keepalive)  # Connect MQTT
-                self._mqtt_start()  # Start network
+                mqtt_thread = threading.Thread(target=self._mqtt_loop_forever)
+                mqtt_thread.start()
+                logger.info(f"MQTT loop started")
             except Exception as e:
                 logger.warning(f"Failed to connect to MQTT broker '{self.broker}', port '{self.port}': {e}")
 
@@ -185,7 +188,12 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
         logger.info("Starting network loop ...")
         self.system.loop_start()
 
-    def _mqtt_stop(self):
+    def _mqtt_loop_forever(self):
+        """Run the network loop forever"""
+        logger.info("Starting network loop forever ...")
+        self.system.loop_forever()
+
+    def mqtt_stop(self):
         """Stop the network loop and disconnect the broker"""
         logger.info("Stopping network loop and disconnecting ...")
         self.system.loop_stop()
