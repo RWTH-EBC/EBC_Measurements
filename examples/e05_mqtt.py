@@ -56,8 +56,9 @@ def e05_mqtt():
         subscribe_topics=['ebc_measurements/valA'],  # Only subscribe 'valA' for on-message trigger
     )
     output_on_msg = DataOutput.DataOutputCsv(r'Results/e05_mqtt_on_msg.csv')  # Save log data to another csv file
-    # Configuration dict for on-message-logger
-    config_logger_on_msg = mqtt_source_on_msg.MqttDataLoggerConfig(
+
+    # Activate on-messeage-logger
+    mqtt_source_on_msg.activate_on_msg_data_logger(
         data_outputs_mapping={'csv_on_msg': output_on_msg},
         data_rename_mapping={
             'csv_on_msg': {
@@ -65,8 +66,6 @@ def e05_mqtt():
             }
         }
     )
-    # Set configuration to MQTT instance by using property setter
-    mqtt_source_on_msg.data_logger = config_logger_on_msg
 
     # Now, use threading to run multiple instances. The on-message logger does not require a separate thread,
     # as it operates in the main thread without method.
@@ -89,6 +88,10 @@ def e05_mqtt():
     # Compare both csv files: In the file with periodic-trigger, data was logged every second as configured. An empty
     # row was logged if the values were already recorded (so that the buffer was cleared) or if no values were
     # available. In the file with on-message-trigger, data was logged only when a publication was detected.
+
+    # Stop the mqtt network to stop all threads of MqttDataSourceOutput instances
+    mqtt_source_output.mqtt_stop()
+    mqtt_source_on_msg.mqtt_stop()
 
 
 if __name__ == '__main__':

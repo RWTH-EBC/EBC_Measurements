@@ -80,6 +80,7 @@ package Base.DataLogger{
         # _data_rename_mapping: dict[str, dict[str, dict[str, str]]] | None
         # _all_duplicates: dict[str, dict[str, list[str]]]
         # _all_variable_names_dict: dict[str, dict[str, tuple[str, ...]]]
+        + log_count: int
         + __init__(\n   data_sources_mapping: dict[str, DataSource.DataSourceBase],\n   data_outputs_mapping: dict[str, DataOutput.DataOutputBase],\n   data_rename_mapping: dict[str, dict[str, dict[str, str]]],\n    **kwargs\n)
         # _check_data_rename_mapping_input(data_rename_mapping: dict, explicit: bool)
         # _init_data_rename_mapping(data_rename_mapping: dict): dict[str, dict[str, dict[str, str]]]
