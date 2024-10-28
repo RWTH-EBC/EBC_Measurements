@@ -56,6 +56,15 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
                 all_topics: tuple[str, ...],
                 all_variable_names: tuple[str, ...] = None
         ):
+            """
+            Initialization of MqttDataOutput instance
+
+            :param system: MQTT client instance
+            :param all_topics: All topics to be published
+            :param all_variable_names: All variable names contained in the published topics. This parameter is for
+            cases involving payloads, as it can contain multiple values. Default is None, the variable names will be
+            same as each topic name
+            """
             logger.info("Initializing MqttDataOutput ...")
             super().__init__(system, log_time_required=False)  # No requires of log time
             self._all_topics = all_topics
