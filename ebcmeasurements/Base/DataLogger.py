@@ -64,7 +64,7 @@ class DataLoggerBase(ABC):
         :param data_outputs_mapping: Mapping of multiple data outputs
         :param data_rename_mapping: Mapping of rename for data sources and data outputs, None to use default names
             provided by data sources
-        :param **kwargs:
+        :param kwargs:
             'data_rename_mapping_explicit': bool: Default is False, if set True, all variable keys in rename mapping
             will be checked, if they are available in data source
             'auto_prefix_for_duplicate': bool: Default is True, if set True, all variable names will be prefixed with
@@ -144,6 +144,9 @@ class DataLoggerBase(ABC):
                 do.write_header_line()
             else:
                 pass
+
+        # Count of logging
+        self.log_count = 0
 
     def _check_data_rename_mapping_input(self, data_rename_mapping: dict, explicit: bool):
         """Check input dict of data rename mapping"""
@@ -303,7 +306,6 @@ class DataLoggerTimeTrigger(DataLoggerBase):
         start_time = time.time()
         end_time = None if duration is None else start_time + duration
         next_log_time = start_time  # Init next logging time
-        log_count = 0  # Init count of logging
 
         logger.info(f"Starting data logging at time {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
         if end_time is None:
@@ -324,8 +326,8 @@ class DataLoggerTimeTrigger(DataLoggerBase):
                 data = self.read_data_all_sources()
 
                 # Log count
-                log_count += 1  # Update log counter
-                print(f"TimeTrigger - Logging count(s): {log_count}")  # Print log counter to console
+                self.log_count += 1  # Update log counter
+                print(f"TimeTrigger - {hex(id(self))} - Logging count(s): {self.log_count}")  # Print count to console
 
                 # Log data to each output
                 self.log_data_all_outputs(data, timestamp)
