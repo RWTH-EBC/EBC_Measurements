@@ -77,6 +77,8 @@ class MqttTheThingsNetwork(MqttDataSourceOutput.MqttDataSourceOutput):
         each device, only these variables will be logged, formatted as {<Device ID>: [<var 1>, ...]}
         :param device_downlink_payload_variable_names: Dict containing all variable names in downlink payload for each
         device, only these variables will be allowed to be set to devices, formatted as {<Device ID>: [<var 1>, ...]}
+
+        Default variable names are formatted as '<end device ID>:<variable>'.
         """
         logger.info("Initializing MqttTheThingsNetwork ...")
 

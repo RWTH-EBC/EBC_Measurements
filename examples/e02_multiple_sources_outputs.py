@@ -32,7 +32,7 @@ def e02_multiple_sources_outputs():
 
     # To avoid ambiguity, the data logger has automatically prefixed data source names to the variable names in the
     # file header.
-    input("Please check both files of logged data. Press Enter to continue...")
+    input("Please check both files of logged data of 'data_logger'. Press Enter to continue...")
 
     # It is possible to customize the rename mapping for variable names from each data source to each data output.
     data_logger_with_rename_1 = DataLogger.DataLoggerTimeTrigger(
@@ -58,7 +58,7 @@ def e02_multiple_sources_outputs():
     # As a result, the prefix function was automatically deactivated for 'OutA', as the variables have been renamed to
     # eliminate any ambiguity. However, for 'OutB', the prefix remains because the variables were not renamed for this
     # output and duplicates still exist.
-    input("Please check both files of logged data. Press Enter to continue...")
+    input("Please check both files of logged data of 'data_logger_with_rename_1'. Press Enter to continue...")
 
     # It should be noted that the rename mapping must eliminate all duplicates for a data output. If it does not, a
     # prefix will still be added to all variables logging to this output.
@@ -90,7 +90,40 @@ def e02_multiple_sources_outputs():
 
     # As a result, in 'OutB', data source names were prefixed to all variable names due to duplicate data source name
     # 'RandData1'.
-    print("Please check both files of logged data.")
+    input("Please check both files of logged data of 'data_logger_with_rename_2'. Press Enter to continue...")
+
+    # As a new feature in v1.2.0, it is now possible to convert data types during the logging process. To implement
+    # this, the parameter 'data_type_conversion_mapping' must be set. Its structure is the same as that of the rename
+    # mapping.
+    data_logger_with_rename_and_type_conversion = DataLogger.DataLoggerTimeTrigger(
+        data_sources_mapping={'Sou1': data_source_1, 'Sou2': data_source_2},
+        data_outputs_mapping={'OutA': data_output_a, 'OutB': data_output_b},
+        data_type_conversion_mapping={
+            'Sou1': {  # Type conversion for variables in data source 'Sou1'
+                'OutA': {  # Type conversion for variables when log the data from 'Sou1' to 'OutA'
+                    'RandData0': 'int',  # Convert 'RandData0' to 'int' when log from 'Sou1' to 'OutA'
+                }
+            }
+        },
+        data_rename_mapping={
+            'Sou1': {  # Rename variables in data source 'Sou1'
+                'OutA': {  # Rename variables when log the data from 'Sou1' to 'OutA'
+                    'RandData0': 'RandData0_S1',  # Rename 'RandData0' from Sou1 to 'RandData0_S1' when log to 'OutA'
+                    'RandData1': 'RandData1_S1',  # Rename 'RandData1' from Sou1 to 'RandData1_S1' when log to 'OutA'
+                },
+            },
+            'Sou2': {  # Rename variables in data source 'Sou2'
+                'OutA': {  # Rename variables when log the data from 'Sou1' to 'OutA'
+                    'RandData0': 'RandData0_S2',  # Rename 'RandData0' from Sou2 to 'RandData0_S2' when log to 'OutA'
+                    'RandData1': 'RandData1_S2',  # Rename 'RandData1' from Sou2 to 'RandData1_S2' when log to 'OutA'
+                },
+            },
+        }
+    )
+    data_logger_with_rename_and_type_conversion.run_data_logging(interval=1, duration=5)
+
+    # As a result, in 'OutA', the variable 'RandData0' from 'Sou1' was converted to int and renamed to 'RandData0_S1'
+    print("Please check both files of logged data of 'data_logger_with_rename_and_type_conversion'.")
 
 
 if __name__ == '__main__':

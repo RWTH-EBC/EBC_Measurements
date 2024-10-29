@@ -75,13 +75,19 @@ package Base.DataOutput{
 
 package Base.DataLogger{
     abstract class DataLoggerBase {
+        # _types_of_data_type_conversion: tuple[str, ...] {static}
         # _data_sources_mapping: dict[str, DataSourceBase | DataSourceOutput.DataSourceOutputBase]
         # _data_outputs_mapping: dict[str, DataOutputBase | DataSourceOutput.DataSourceOutputBase]
+        # _data_type_conversion_mapping: dict[str, dict[str, dict[str, str]]] | None
         # _data_rename_mapping: dict[str, dict[str, dict[str, str]]] | None
         # _all_duplicates: dict[str, dict[str, list[str]]]
         # _all_variable_names_dict: dict[str, dict[str, tuple[str, ...]]]
         + log_count: int
-        + __init__(\n   data_sources_mapping: dict[str, DataSource.DataSourceBase],\n   data_outputs_mapping: dict[str, DataOutput.DataOutputBase],\n   data_rename_mapping: dict[str, dict[str, dict[str, str]]],\n    **kwargs\n)
+        + __init__(\n   data_sources_mapping: dict[str, DataSource.DataSourceBase],\n   data_outputs_mapping: dict[str, DataOutput.DataOutputBase],\n   data_type_conversion_mapping: dict[str, dict[str, dict[str, str]]],\n   data_rename_mapping: dict[str, dict[str, dict[str, str]]],\n    **kwargs\n)
+        # _check_data_source_name(data_source_name: str)
+        # _check_data_output_name(data_output_name: str)
+        # _check_data_type_conversion_mapping_input(data_type_conversion_mapping: dict)
+        # _init_data_type_conversion_mapping(data_type_conversion_mapping: dict): dict[str, dict[str, dict[str, str | None]]]
         # _check_data_rename_mapping_input(data_rename_mapping: dict, explicit: bool)
         # _init_data_rename_mapping(data_rename_mapping: dict): dict[str, dict[str, dict[str, str]]]
         # _get_duplicates_in_data_rename_mapping(data_rename_mapping: dict): dict[str, dict[str, list[str]]]
@@ -92,6 +98,7 @@ package Base.DataLogger{
         + data_sources_mapping: dict {readOnly}
         + data_outputs_mapping: dict {readOnly}
         + {static} get_timestamp_now(): str
+        + {static} convert_data_type(value, data_type: str | None): bool | str | int | float | bytes | None
     }
     note right of DataLoggerBase::_data_sources_mapping
         {
@@ -104,6 +111,37 @@ package Base.DataLogger{
         {
             <output_name_1>: <data_output_1>,
             <output_name_2>: <data_output_2>,
+            ...
+        }
+    end note
+    note right of DataLoggerBase::_data_type_conversion_mapping
+        {
+            <source_name_1>: {
+                <output_name_1>: {
+                    <variable_name_1_in_source_1>: <type_to_be_converted_in_output_1>,
+                    <variable_name_2_in_source_1>: <type_to_be_converted_in_output_1>,
+                    ...
+                },
+                <output_name_2>: {
+                    <variable_name_1_in_source_1>: <type_to_be_converted_in_output_2>,
+                    <variable_name_2_in_source_1>: <type_to_be_converted_in_output_2>,
+                    ...
+                },
+                ...
+            },
+            <source_name_2>: {
+                <output_name_1>: {
+                    <variable_name_1_in_source_2>: <type_to_be_converted_in_output_1>,
+                    <variable_name_2_in_source_2>: <type_to_be_converted_in_output_1>,
+                    ...
+                },
+                <output_name_2>: {
+                    <variable_name_1_in_source_2>: <type_to_be_converted_in_output_2>,
+                    <variable_name_2_in_source_2>: <type_to_be_converted_in_output_2>,
+                    ...
+                },
+                ...
+            },
             ...
         }
     end note
@@ -198,7 +236,7 @@ package Base.DataLogger{
     end note
 
     class DataLoggerTimeTrigger implements DataLoggerBase {
-        + __init__(\n   data_sources_mapping: dict[str, DataSource.DataSourceBase | DataSourceOutput.DataSourceOutputBase],\n   data_outputs_mapping: dict[str, DataOutput.DataOutputBase | DataSourceOutput.DataSourceOutputBase],\n   data_rename_mapping: dict[str, dict[str, dict[str, str]]],\n    **kwargs\n)
+        + __init__(\n   data_sources_mapping: dict[str, DataSource.DataSourceBase | DataSourceOutput.DataSourceOutputBase],\n   data_outputs_mapping: dict[str, DataOutput.DataOutputBase | DataSourceOutput.DataSourceOutputBase],\n   data_type_conversion_mapping: dict[str, dict[str, dict[str, str]]],\n   data_rename_mapping: dict[str, dict[str, dict[str, str]]],\n    **kwargs\n)
         + run_data_logging(interval: int | float, duration: int | float | None)
     }
 
