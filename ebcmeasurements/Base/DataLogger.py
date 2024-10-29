@@ -11,10 +11,14 @@ logger = logging.getLogger(__name__)
 
 
 class DataLoggerBase(ABC):
+    # Class attribute: supported types by data type conversions
+    _types_of_data_type_conversion = ('str', 'int', 'float', 'bool', 'bytes')
+
     def __init__(
             self,
             data_sources_mapping: dict[str, DataSource.DataSourceBase | DataSourceOutput.DataSourceOutputBase],
             data_outputs_mapping: dict[str, DataOutput.DataOutputBase | DataSourceOutput.DataSourceOutputBase],
+            data_type_conversion_mapping: dict[str, dict[str, dict[str, str]]] | None = None,
             data_rename_mapping: dict[str, dict[str, dict[str, str]]] | None = None,
             **kwargs
     ):
@@ -32,6 +36,31 @@ class DataLoggerBase(ABC):
         {
             '<output1_name>': <instance1 of class DataOutput>,
             '<output2_name>': <instance2 of class DataOutput>,
+            ...
+        }
+
+        The format of data_type_conversion_mapping is as follows:
+        {
+            '<source1_name>': {
+                <'output1_name'>: {
+                    <variable_name_in_source1>: <type_to_be_converted>,
+                    ...
+                },
+                <'output2_name'>: {
+                    <variable_name_in_source1>: <type_to_be_converted>,
+                    ...
+                },
+            },
+            '<source2_name>': {
+                <'output1_name'>: {
+                    <variable_name_in_source2>: <type_to_be_converted>,
+                    ...
+                },
+                <'output2_name'>: {
+                    <variable_name_in_source2>: <type_to_be_converted>,
+                    ...
+                },
+            },
             ...
         }
 
@@ -62,6 +91,8 @@ class DataLoggerBase(ABC):
 
         :param data_sources_mapping: Mapping of multiple data sources
         :param data_outputs_mapping: Mapping of multiple data outputs
+        :param data_type_conversion_mapping: Mapping of multiple data type conversions, None to use default data types
+            provided by data sources, supported types are 'str', 'int', 'float', 'bool', 'bytes'
         :param data_rename_mapping: Mapping of rename for data sources and data outputs, None to use default names
             provided by data sources
         :param kwargs:
@@ -81,6 +112,16 @@ class DataLoggerBase(ABC):
             for k, do in data_outputs_mapping.items()
         }
 
+        # Data type conversion mapping of data sources and outputs
+        if data_type_conversion_mapping is not None:
+            # Check data type conversion mapping of data sources and outputs
+            self._check_data_type_conversion_mapping_input(data_type_conversion_mapping=data_type_conversion_mapping)
+            # Init the data type conversion mapping (full mapping)
+            self._data_type_conversion_mapping = self._init_data_type_conversion_mapping(
+                data_type_conversion_mapping=data_type_conversion_mapping)
+        else:
+            self._data_type_conversion_mapping = None
+
         # Check rename mapping of data sources and outputs
         if data_rename_mapping is not None:
             self._check_data_rename_mapping_input(
@@ -88,7 +129,7 @@ class DataLoggerBase(ABC):
                 explicit=kwargs.get('data_rename_mapping_explicit', False)
             )
 
-        # Init the data rename mapping
+        # Init the data rename mapping (full mapping)
         self._data_rename_mapping = self._init_data_rename_mapping(
             data_rename_mapping=data_rename_mapping if data_rename_mapping is not None else {},
         )
@@ -148,18 +189,45 @@ class DataLoggerBase(ABC):
         # Count of logging
         self.log_count = 0
 
+    def _check_data_source_name(self, data_source_name: str):
+        """Check if data source name available in data sources"""
+        if data_source_name not in self._data_sources_mapping.keys():
+            raise ValueError(f"Invalid data source name '{data_source_name}' for rename mapping")
+
+    def _check_data_output_name(self, data_output_name: str):
+        """Check if data output name available in data outputs"""
+        if data_output_name not in self._data_outputs_mapping.keys():
+            raise ValueError(f"Invalid data output name '{data_output_name}' for rename mapping")
+
+    def _check_data_type_conversion_mapping_input(self, data_type_conversion_mapping: dict):
+        """Check input dict of data type conversion mapping"""
+        # Check data source, data output, and mapping
+        for ds_name, output_dict in data_type_conversion_mapping.items():
+            self._check_data_source_name(ds_name)
+            for do_name, mapping in output_dict.items():
+                self._check_data_output_name(do_name)
+                for typ in mapping.values():
+                    if typ not in self._types_of_data_type_conversion:
+                        raise ValueError(f"Invalid data type '{typ}' for data type conversion mapping, it must be one "
+                                         f"of '{self._types_of_data_type_conversion}'")
+
+    def _init_data_type_conversion_mapping(
+            self, data_type_conversion_mapping: dict) -> dict[str, dict[str, dict[str, str | None]]]:
+        """Init data type conversion mapping for all data sources to all data outputs, if the conversion mapping for a
+        variable name is unavailable, return None"""
+        return {
+            ds_name: {
+                do_name: {
+                    var: data_type_conversion_mapping.get(ds_name, {}).get(do_name, {}).get(var, None)
+                    for var in ds.all_variable_names
+                }
+                for do_name in self._data_outputs_mapping.keys()
+            }
+            for ds_name, ds in self._data_sources_mapping.items()
+        }
+
     def _check_data_rename_mapping_input(self, data_rename_mapping: dict, explicit: bool):
         """Check input dict of data rename mapping"""
-        def _check_data_source_name(data_source_name):
-            """Check if data source name available in data sources"""
-            if data_source_name not in self._data_sources_mapping.keys():
-                raise ValueError(f"Invalid data source name '{data_source_name}' for rename mapping")
-
-        def _check_data_output_name(data_output_name):
-            """Check if data output name available in data outputs"""
-            if data_output_name not in self._data_outputs_mapping.keys():
-                raise ValueError(f"Invalid data output name '{data_output_name}' for rename mapping")
-
         def _explicit_check_rename_mapping(data_source_name, rename_mapping):
             """Explicit check if all keys in the rename mapping are available in data source"""
             for key in rename_mapping.keys():
@@ -171,9 +239,9 @@ class DataLoggerBase(ABC):
 
         # Check data source, data output, and mapping
         for ds_name, output_dict in data_rename_mapping.items():
-            _check_data_source_name(ds_name)
+            self._check_data_source_name(ds_name)
             for do_name, mapping in output_dict.items():
-                _check_data_output_name(do_name)
+                self._check_data_output_name(do_name)
                 if explicit:
                     _explicit_check_rename_mapping(ds_name, mapping)
 
@@ -238,11 +306,25 @@ class DataLoggerBase(ABC):
         }
 
     def log_data_all_outputs(self, data: dict[str, dict], timestamp: str = None):
+        def process_variable_name(data_source_name: str, data_output_name: str, variable_name: str) -> str:
+            # Rename the variable based on rename mapping
+            return self._data_rename_mapping[data_source_name][data_output_name][variable_name]
+
+        def process_variable_value(data_source_name: str, data_output_name: str, variable_name: str, value):
+            if self._data_type_conversion_mapping is None:
+                # No data type conversion
+                return value
+            else:
+                return self.convert_data_type(
+                    value=value,
+                    data_type=self._data_type_conversion_mapping[data_source_name][data_output_name][variable_name]
+                )
+
         """Log data to all data outputs"""
         for do_name, do in self._data_outputs_mapping.items():
             # Unzip and rename key for the current output
             unzipped_data = {
-                self._data_rename_mapping[ds_name][do_name][var]: value
+                process_variable_name(ds_name, do_name, var): process_variable_value(ds_name, do_name, var, value)
                 for ds_name, ds_data in data.items()
                 for var, value in ds_data.items()
             }
@@ -276,18 +358,48 @@ class DataLoggerBase(ABC):
         """Get the timestamp by now"""
         return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
 
+    @staticmethod
+    def convert_data_type(value, data_type: str | None) -> bool | str | int | float | bytes | None:
+        """Convert a single value to defined type"""
+        if value is None:
+            return None
+
+        if data_type is None:
+            return value
+
+        try:
+            if data_type == 'str':
+                return str(value)
+            elif data_type == 'int':
+                return int(value)
+            elif data_type == 'float':
+                return float(value)
+            elif data_type == 'bool':
+                # Converts any non-zero or non-empty string to True, otherwise False
+                return bool(value) and value not in (0, '', None)
+            elif data_type == 'bytes':
+                # Convert to bytes using UTF-8 encoding by default
+                return bytes(str(value), 'utf-8')
+            else:
+                raise ValueError(f"Unsupported data type '{data_type}'")
+        except ValueError:
+            logger.warning(f"Could not convert value '{value}' to type '{data_type}'")
+            return value
+
 
 class DataLoggerTimeTrigger(DataLoggerBase):
     def __init__(
             self,
             data_sources_mapping: dict[str, DataSource.DataSourceBase | DataSourceOutput.DataSourceOutputBase],
             data_outputs_mapping: dict[str, DataOutput.DataOutputBase | DataSourceOutput.DataSourceOutputBase],
+            data_type_conversion_mapping: dict[str, dict[str, dict[str, str]]] | None = None,
             data_rename_mapping: dict[str, dict[str, dict[str, str]]] | None = None,
             **kwargs
     ):
         """Time triggerd data logger"""
         logger.info("Initializing DataLoggerTimeTrigger ...")
-        super().__init__(data_sources_mapping, data_outputs_mapping, data_rename_mapping, **kwargs)
+        super().__init__(
+            data_sources_mapping, data_outputs_mapping, data_type_conversion_mapping, data_rename_mapping, **kwargs)
 
     def run_data_logging(self, interval: int | float, duration: int | float | None):
         """

@@ -60,6 +60,11 @@ def e05_mqtt():
     # Activate on-messeage-logger
     mqtt_source_on_msg.activate_on_msg_data_logger(
         data_outputs_mapping={'csv_on_msg': output_on_msg},
+        data_type_conversion_mapping={
+            'csv_on_msg': {
+                'ebc_measurements/valA': 'int',  # Data type conversion is possible
+            }
+        },
         data_rename_mapping={
             'csv_on_msg': {
                 'ebc_measurements/valA': 'renamed_valA',  # Renaming is possible

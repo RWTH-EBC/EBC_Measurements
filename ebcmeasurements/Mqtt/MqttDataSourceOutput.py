@@ -7,6 +7,7 @@ import threading
 import time
 import sys
 import logging.config
+
 # Load logging configuration from file
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
     class MqttDataSource(DataSourceOutput.DataSourceOutputBase.SystemDataSource):
         """MQTT implementation of nested class SystemDataSource"""
+
         def __init__(
                 self,
                 system: mqtt.Client,
@@ -50,6 +52,7 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
 
     class MqttDataOutput(DataSourceOutput.DataSourceOutputBase.SystemDataOutput):
         """MQTT implementation of nested class SystemDataOutput"""
+
         def __init__(
                 self,
                 system: mqtt.Client,
@@ -92,7 +95,8 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
                 self,
                 data_source: object,
                 data_outputs_mapping: dict[str: DataOutput.DataOutputBase],
-                data_rename_mapping: dict[str: dict[str: str]] | None = None,
+                data_type_conversion_mapping: dict[str, dict[str, str]] | None = None,
+                data_rename_mapping: dict[str, dict[str, str]] | None = None,
         ):
             """MQTT 'on message' triggerd data logger"""
             logger.info("Initializing MqttDataOnMsgLogger ...")
@@ -100,6 +104,8 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
             super().__init__(
                 data_sources_mapping={self.data_source_name: data_source},
                 data_outputs_mapping=data_outputs_mapping,
+                data_type_conversion_mapping={self.data_source_name: data_type_conversion_mapping}
+                if data_type_conversion_mapping is not None else None,
                 data_rename_mapping=
                 {self.data_source_name: data_rename_mapping} if data_rename_mapping is not None else None
             )
@@ -268,6 +274,7 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
     def activate_on_msg_data_logger(
             self,
             data_outputs_mapping: dict[str: DataOutput.DataOutputBase],
+            data_type_conversion_mapping: dict[str, dict[str, str]] | None = None,
             data_rename_mapping: dict[str: dict[str: str]] | None = None
     ):
         """
@@ -280,14 +287,27 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
             ...
         }
 
-        The format of data_rename_mapping is as follows:
+        The format of data_type_conversion_mapping is as follows:
         {
             <'output1_name'>: {
-                <variable_name_in_source1>: <new_variable_name_in_output1>,
+                <variable_name_in_source>: <type_to_be_converted>,
                 ...
             },
             <'output2_name'>: {
-                <variable_name_in_source1>: <new_variable_name_in_output2>,
+                <variable_name_in_source>: <type_to_be_converted>,
+                ...
+            },
+            ...
+        }
+
+        The format of data_rename_mapping is as follows:
+        {
+            <'output1_name'>: {
+                <variable_name_in_source>: <new_variable_name_in_output1>,
+                ...
+            },
+            <'output2_name'>: {
+                <variable_name_in_source>: <new_variable_name_in_output2>,
                 ...
             },
             ...
@@ -297,6 +317,7 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
         self._on_msg_data_logger = self.MqttDataOnMsgLogger(
             data_source=self._data_source,
             data_outputs_mapping=data_outputs_mapping,
+            data_type_conversion_mapping=data_type_conversion_mapping,
             data_rename_mapping=data_rename_mapping
         )
         logger.info("The MQTT on-message data logger is activated")
