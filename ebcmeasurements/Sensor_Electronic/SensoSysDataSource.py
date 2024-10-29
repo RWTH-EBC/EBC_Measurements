@@ -26,6 +26,8 @@ class SensoSysDataSource(DataSource.DataSourceBase):
         :param output_dir: Output dir to save information of found devices, if None, they will not be saved
         :param all_devices_ids: All possible device's IDs to scan, if None, scan ID from 0 to 255
         :param time_out: Timeout in seconds for serial communication
+
+        Default variable names are formatted as '<variable>_<address ID>'.
         """
         logger.info("Initializing SensoSysDataSource ...")
 

@@ -145,6 +145,8 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
         :param kwargs:
             'data_source_all_variable_names': List of all variable names for data source by subscribed topics
             'data_output_all_variable_names': List of all variable names for data output by published topics
+
+        Default variable names are the same as topic names, formatted as '<topic>/<subtopic>/.../<variable>'.
         """
         logger.info("Initializing MqttDataSourceOutput ...")
         self.broker = broker

@@ -43,6 +43,8 @@ class RandomDataSource(DataSourceBase):
         :param size: Number of variables to generate
         :param key_missing_rate: Probability of a key being excluded from the final dictionary
         :param value_missing_rate: Probability of assigning None to a value instead of a random float
+
+        Default variable names are formatted as 'RandData<n>'.
         """
         super().__init__()
         if not (0.0 <= key_missing_rate <= 1.0):
@@ -73,6 +75,8 @@ class RandomStringSource(RandomDataSource):
         :param str_length: Length of each random string
         :param key_missing_rate: Probability of a key being excluded from the final dictionary
         :param value_missing_rate: Probability of assigning None to a value instead of a random float
+
+        Default variable names are formatted as 'RandStr<n>'.
         """
         super().__init__(size, key_missing_rate, value_missing_rate)
         self.str_length = str_length
@@ -99,6 +103,8 @@ class RandomBooleanSource(RandomDataSource):
         :param size: Number of variables to generate
         :param key_missing_rate: Probability of a key being excluded from the final dictionary
         :param value_missing_rate: Probability of assigning None to a value instead of a random float
+
+        Default variable names are formatted as 'RandBool<n>'.
         """
         super().__init__(size, key_missing_rate, value_missing_rate)
         self._all_variable_names = tuple(f'RandBool{n}' for n in range(self.size))  # Re-define all data names

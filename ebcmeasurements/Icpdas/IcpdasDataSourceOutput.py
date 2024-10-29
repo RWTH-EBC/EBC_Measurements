@@ -82,6 +82,8 @@ class IcpdasDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
         :param io_series: I/O series name, the current version only supports 'I-87K'
         :param output_dir: Output directory to save initialization information
         :param ignore_slots_idx: List of slot indices to be ignored by reading or writing data
+
+        Default variable names are formatted as 'Mo<slot index>Ch<channel index>', with both indices starting from 0.
         """
         logger.info(f"Initializing IcpdasDataSourceOutput ...")
         self.host = host

@@ -117,6 +117,8 @@ class AdsDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
         :param ams_net_port: See package pyads.Connection.ams_net_port
         :param source_data_names: List of source names to be read from PLC, None to deactivate read function
         :param output_data_names: List of output names to be logged to PLC, None to deactivate write function
+
+        Default variable names are the same as in TwinCAT, formatted as '<struct 1>.<struct 2>...<variable>'.
         """
         logger.info("Initializing AdsDataSourceOutput ...")
         self.ams_net_id = ams_net_id
