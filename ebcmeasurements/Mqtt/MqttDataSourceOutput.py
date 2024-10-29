@@ -7,7 +7,6 @@ import threading
 import time
 import sys
 import logging.config
-
 # Load logging configuration from file
 logger = logging.getLogger(__name__)
 
@@ -15,7 +14,6 @@ logger = logging.getLogger(__name__)
 class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
     class MqttDataSource(DataSourceOutput.DataSourceOutputBase.SystemDataSource):
         """MQTT implementation of nested class SystemDataSource"""
-
         def __init__(
                 self,
                 system: mqtt.Client,
@@ -52,7 +50,6 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
 
     class MqttDataOutput(DataSourceOutput.DataSourceOutputBase.SystemDataOutput):
         """MQTT implementation of nested class SystemDataOutput"""
-
         def __init__(
                 self,
                 system: mqtt.Client,
