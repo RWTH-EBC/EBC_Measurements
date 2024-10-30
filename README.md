@@ -20,7 +20,7 @@ logging procedure, featuring the following capabilities:
 
 - Read and write data from and to multiple systems simultaneously
 - Rename each variable in data sources for each output individually
-- Automatically prefix variable names to avoid duplicates in data outputs
+- Check variable names and automatically prefix to avoid duplicates in data outputs
 - Perform data type conversion for each variable in data sources for each data output individually
 
 The following types of data loggers are available in the toolbox:
