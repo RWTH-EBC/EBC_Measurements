@@ -1,0 +1,92 @@
+@startuml
+left to right direction
+
+package Base{}
+package Base.Auxiliary{
+    class __main__{
+        + load_json
+        + dump_json
+    }
+}
+package Base.DataLogger{
+    abstract class DataLoggerBase
+    class DataLoggerTimeTrigger implements DataLoggerBase
+
+    DataLoggerBase o-- Base.DataSource.DataSourceBase
+    DataLoggerBase o-- Base.DataOutput.DataOutputBase
+}
+package Base.DataOutput{
+    abstract class DataOutputBase
+    class DataOutputCsv implements DataOutputBase
+}
+package Base.DataSource{
+    abstract class DataSourceBase
+    class RandomDataSource implements DataSourceBase
+    class RandomStringSource extends RandomDataSource
+    class RandomBooleanSource extends RandomDataSource
+}
+package Base.DataSourceOutput{
+    abstract class DataSourceOutputBase
+    abstract class SystemDataSource implements Base.DataSource.DataSourceBase
+    abstract class SystemDataOutput implements Base.DataOutput.DataOutputBase
+
+    DataSourceOutputBase *-- SystemDataSource
+    DataSourceOutputBase *-- SystemDataOutput
+}
+
+package Beckhoff{}
+package Beckhoff.AdsDataSourceOutput{
+    class AdsDataSourceOutput implements Base.DataSourceOutput.DataSourceOutputBase
+    class AdsDataSource implements Base.DataSourceOutput.DataSourceOutputBase.SystemDataSource
+    class AdsDataOutput implements Base.DataSourceOutput.DataSourceOutputBase.SystemDataOutput
+
+    AdsDataSourceOutput *-- AdsDataSource
+    AdsDataSourceOutput *-- AdsDataOutput
+}
+
+package Icpdas{}
+package Icpdas.IcpdasDataSourceOutput{
+    class IcpdasDataSourceOutput implements Base.DataSourceOutput.DataSourceOutputBase
+    class IcpdasDataSource implements Base.DataSourceOutput.DataSourceOutputBase.SystemDataSource
+    class IcpdasDataOutput implements Base.DataSourceOutput.DataSourceOutputBase.SystemDataOutput
+
+    IcpdasDataSourceOutput *-- IcpdasDataSource
+    IcpdasDataSourceOutput *-- IcpdasDataOutput
+    IcpdasDataSourceOutput o-- Icpdas.IoSeries_I87K.IoUnit
+}
+package Icpdas.IoBase{
+    abstract class EthernetIoBase
+    abstract class EthernetIoUnit implements EthernetIoBase
+    abstract class EthernetIoModule implements EthernetIoBase
+}
+package Icpdas.IoSeries_I87K{
+    class IoUnit implements Icpdas.IoBase.EthernetIoUnit
+    class IoModule87013W implements Icpdas.IoBase.EthernetIoModule
+    class IoModule87019RW implements Icpdas.IoBase.EthernetIoModule
+}
+
+package Mqtt{}
+package Mqtt.MqttDataSourceOutput{
+    class MqttDataSourceOutput implements Base.DataSourceOutput.DataSourceOutputBase
+    class MqttDataSource implements Base.DataSourceOutput.DataSourceOutputBase.SystemDataSource
+    class MqttDataOutput implements Base.DataSourceOutput.DataSourceOutputBase.SystemDataOutput
+    class MqttDataOnMsgLogger implements Base.DataLogger.DataLoggerBase
+
+    MqttDataSourceOutput *-- MqttDataSource
+    MqttDataSourceOutput *-- MqttDataOutput
+    MqttDataSourceOutput *-- MqttDataOnMsgLogger
+}
+package Mqtt.MqttTheThingsNetwork{
+    class MqttTheThingsNetwork extends Mqtt.MqttDataSourceOutput.MqttDataSourceOutput
+}
+
+package Sensor_Electronic{}
+package Sensor_Electronic.SensoSysDataSource{
+    class SensoSysDataSource implements Base.DataSource.DataSourceBase
+
+    SensoSysDataSource o-- Sensor_Electronic.SensoSysDevices.SensoSys
+}
+package Sensor_Electronic.SensoSysDevices{
+    class SensoSys
+}
+@enduml
