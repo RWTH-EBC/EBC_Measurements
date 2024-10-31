@@ -13,14 +13,19 @@ Potential use cases include field measurements, test bench monitoring, and Hardw
 With its versatile capabilities, this toolbox aims to enhance the efficiency of data acquisition processes across 
 different applications.
 
-## Data logger
+## Tool structure and overview
+
+**Overview**
+![Overview of tool structure](docs/uml/Overview.png)
+
+**Data logger**
 
 As the key component in the data logging process, the data logger in this toolbox ensures high flexibility in the 
 logging procedure, featuring the following capabilities:
 
 - Read and write data from and to multiple systems simultaneously
 - Rename each variable in data sources for each output individually
-- Automatically prefix variable names to avoid duplicates in data outputs
+- Check variable names and automatically prefix to avoid duplicates in data outputs
 - Perform data type conversion for each variable in data sources for each data output individually
 
 The following types of data loggers are available in the toolbox:

@@ -1,4 +1,6 @@
 @startuml
+!pragma layout smetana
+
 package Base{}
 
 package Base.DataSource{
@@ -100,14 +102,14 @@ package Base.DataLogger{
         + {static} get_timestamp_now(): str
         + {static} convert_data_type(value, data_type: str | None): bool | str | int | float | bytes | None
     }
-    note right of DataLoggerBase::_data_sources_mapping
+    note left of DataLoggerBase::_data_sources_mapping
         {
             <source_name_1>: <data_source_1>,
             <source_name_2>: <data_source_2>,
             ...
         }
     end note
-    note right of DataLoggerBase::_data_outputs_mapping
+    note left of DataLoggerBase::_data_outputs_mapping
         {
             <output_name_1>: <data_output_1>,
             <output_name_2>: <data_output_2>,
@@ -206,13 +208,13 @@ package Base.DataLogger{
             ...
         }
     end note
-    note right of DataLoggerBase::_init_data_rename_mapping
+    note left of DataLoggerBase::_init_data_rename_mapping
         return: same structure as data_rename_mapping
     end note
-    note right of DataLoggerBase::_get_duplicates_in_data_rename_mapping
+    note left of DataLoggerBase::_get_duplicates_in_data_rename_mapping
         return: _all_duplicates
     end note
-    note right of DataLoggerBase::_prefix_data_rename_mapping
+    note left of DataLoggerBase::_prefix_data_rename_mapping
         return: same structure as data_rename_mapping
     end note
     note left of DataLoggerBase::read_data_all_sources
@@ -269,5 +271,12 @@ package Base.DataSourceOutput{
 
 Base.DataSource.DataSourceBase <|.. Base.DataSourceOutput.SystemDataSource
 Base.DataOutput.DataOutputBase <|.. Base.DataSourceOutput.SystemDataOutput
+
+package Base.Auxiliary{
+    class __main__{
+        + {static} load_json(file_name: str): list | dict
+        + {static} dump_json(content: list | dict, file_name: str)
+    }
+}
 
 @enduml
