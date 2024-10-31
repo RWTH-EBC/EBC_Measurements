@@ -1,11 +1,12 @@
 @startuml
+!pragma layout smetana
 left to right direction
 
 package Base{}
 package Base.Auxiliary{
     class __main__{
-        + load_json
-        + dump_json
+        + load_json()
+        + dump_json()
     }
 }
 package Base.DataLogger{

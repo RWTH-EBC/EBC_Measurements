@@ -1,0 +1,71 @@
+@startuml
+'left to right direction
+
+node "Data Source"{
+    frame "Random data"{
+        () "random data"
+        [float / string / boolean] --> "random data"
+    }
+    frame "Sensor Electronic"{
+        () "serial port"
+        [AirDistSys / ThermCondSys] --> "serial port"
+    }
+}
+
+node "Data Output"{
+    frame "CSV"{
+        () "csv writer"
+        "csv writer" --> [CSV file]
+    }
+}
+
+node "Data Source-Output"{
+    frame "Beckhoff"{
+        () "ADS"
+        [Industrial PC] <--> "ADS"
+    }
+    frame "ICP DAS"{
+        () "DCON"
+        [I/O unit/module] <--> "DCON"
+    }
+    frame "MQTT"{
+        () "MQTT client"
+        [MQTT broker] <--> "MQTT client"
+        [The Things Network] <--> "MQTT client"
+    }
+}
+
+node "Data Logger"{
+    portin "key-value pairs in"
+    portout "key-value pairs out"
+
+    component "Logger"{
+        rectangle "check duplicates"
+        rectangle "rename"
+        rectangle "convert data type"
+
+        "check duplicates" -right-> "rename"
+        "rename" -right-> "convert data type"
+    }
+    "key-value pairs in" --> "check duplicates"
+    "convert data type" --> "key-value pairs out"
+
+    component "Periodic trigger (time trigger)"
+    component "MQTT on-message trigger"
+    "Logger" <|.. "Periodic trigger (time trigger)"
+    "Logger" <|.. "MQTT on-message trigger"
+
+    "random data" -[#Red]-> "key-value pairs in"
+    "serial port" -[#Red]-> "key-value pairs in"
+
+    "key-value pairs out" -[#Green]-> "csv writer"
+
+    "ADS" -[#Red]-> "key-value pairs in"
+    "key-value pairs out" -[#Green]-> "ADS"
+    "DCON" -[#Red]-> "key-value pairs in"
+    "key-value pairs out" -[#Green]-> "DCON"
+    "MQTT client" -[#Red]-> "key-value pairs in"
+    "key-value pairs out" -[#Green]-> "MQTT client"
+}
+
+@enduml

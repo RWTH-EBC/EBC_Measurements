@@ -13,7 +13,12 @@ Potential use cases include field measurements, test bench monitoring, and Hardw
 With its versatile capabilities, this toolbox aims to enhance the efficiency of data acquisition processes across 
 different applications.
 
-## Data logger
+## Tool structure and overview
+
+**Overview**
+![Overview of tool structure](docs/uml/Overview.png)
+
+**Data logger**
 
 As the key component in the data logging process, the data logger in this toolbox ensures high flexibility in the 
 logging procedure, featuring the following capabilities:
