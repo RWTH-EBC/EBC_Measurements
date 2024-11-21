@@ -1,5 +1,11 @@
 from .Base import Auxiliary, DataLogger, DataOutput, DataSource
-from .Beckhoff import AdsDataSourceOutput
+try:
+    from .Beckhoff import AdsDataSourceOutput
+except (ImportError, FileNotFoundError) as e:
+    # If TwinCAT is not installed in system, it will cause an error as 'TcAdsDll.dll' does not exist. See:
+    # https://github.com/stlehmann/pyads/issues/105
+    # https://stackoverflow.com/questions/76305160/windows-10-python-pyads-library-error-could-not-find-module-tcadsdll-dll
+    print(f"TwinCAT not installed in your system, the submodule 'Beckhoff' is not installed. Orig. error: {e}")
 from .Icpdas import IcpdasDataSourceOutput
 from .Mqtt import MqttDataSourceOutput, MqttTheThingsNetwork
 from .Sensor_Electronic import SensoSysDataSource
