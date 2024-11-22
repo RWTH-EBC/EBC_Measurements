@@ -6,12 +6,15 @@ import logging
 
 try:
     from .Beckhoff import AdsDataSourceOutput
-except (ImportError, FileNotFoundError) as e:
-    # If TwinCAT is not installed in system, it will cause an error as 'TcAdsDll.dll' does not exist. See:
-    # https://github.com/stlehmann/pyads/issues/105
-    # https://stackoverflow.com/questions/76305160/windows-10-python-pyads-library-error-could-not-find-module-tcadsdll-dll
+except FileNotFoundError as e:
+    # Without TwinCAT installed in system, 'FileNotFoundError' will be raised by Pyads due to missing 'TcAdsDll.dll'.
+    # Ref1: https://github.com/stlehmann/pyads/issues/105
+    # Ref2: https://stackoverflow.com/questions/76305160/windows-10-python-pyads-library-error-could-not-find-module-tcadsdll-dll
     logging.warning(
-        f"TwinCAT not installed in the system, 'Beckhoff' submodule will not be available. Original error: {e}")
+        f"Without TwinCAT installed on the system, 'AdsDataSourceOutput' submodule will not be available. "
+        f"Original error: {e}")
+except ImportError as e:
+    logging.error(f"Failed to import 'AdsDataSourceOutput': {e}")
 
 # Configure the root logger with a default leve and format
 logging.basicConfig(
