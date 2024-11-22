@@ -7,8 +7,7 @@ This example shows the API of ICP DAS system
 NOTICE 1: Hardware (I/O units with I/O modules) are necessary to run this example
 NOTICE 2: The package now only supports I-87K system
 """
-from ebcmeasurements.Base import DataOutput, DataLogger
-from ebcmeasurements.Icpdas import IcpdasDataSourceOutput
+from ebcmeasurements import DataOutput, DataLogger, IcpdasDataSourceOutput
 
 
 def e05_icpdas():

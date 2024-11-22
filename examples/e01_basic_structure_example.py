@@ -9,7 +9,7 @@ steps are usually necessary:
 3. Configuration of data logger(s)
 
 """
-from ebcmeasurements.Base import DataSource, DataOutput, DataLogger
+from ebcmeasurements import DataSource, DataOutput, DataLogger
 
 
 def e01_basic_structure_example():

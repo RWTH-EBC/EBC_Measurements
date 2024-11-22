@@ -6,8 +6,7 @@ This example shows the measuring API of Sensor Electronic.
 
 NOTICE: The measuring system must be connected to the PC in order to run this example.
 """
-from ebcmeasurements.Base import DataOutput, DataLogger
-from ebcmeasurements.Sensor_Electronic import SensoSysDataSource
+from ebcmeasurements import DataOutput, DataLogger, SensoSysDataSource
 
 
 def e03_sensor_electronic():

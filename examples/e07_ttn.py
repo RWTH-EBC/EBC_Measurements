@@ -6,8 +6,7 @@ This example shows the API of TTN
 
 NOTICE: Registered IoT-device in the TTN and internet connection are necessary to run this example
 """
-from ebcmeasurements.Base import DataOutput
-from ebcmeasurements.Mqtt import MqttTheThingsNetwork
+from ebcmeasurements import DataOutput, MqttTheThingsNetwork
 
 
 def e07_ttn():
