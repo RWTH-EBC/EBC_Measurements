@@ -6,8 +6,7 @@ This example shows the API of Beckhoff system
 
 NOTICE: Load the project "EBC Measurements TwinCAT" to a Beckhoff PLC in order to run this example
 """
-from ebcmeasurements.Base import DataSource, DataOutput, DataLogger
-from ebcmeasurements.Beckhoff import AdsDataSourceOutput
+from ebcmeasurements import DataSource, DataOutput, DataLogger, AdsDataSourceOutput
 
 
 def e04_beckhoff():

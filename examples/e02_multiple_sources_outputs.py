@@ -6,7 +6,7 @@ outputs. In fact, the data logger can also collect data from multiple data sourc
 variable names may have duplicates across different sources, which can lead to ambiguity in the logged data. This
 example shows how to address this issue.
 """
-from ebcmeasurements.Base import DataSource, DataOutput, DataLogger
+from ebcmeasurements import DataSource, DataOutput, DataLogger
 
 
 def e02_multiple_sources_outputs():

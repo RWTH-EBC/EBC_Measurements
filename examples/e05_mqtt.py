@@ -7,8 +7,7 @@ This example shows the API of MQTT
 NOTICE: Internet connection is necessary to run this example; Install a MQTT explorer (http://mqtt-explorer.com/) to
 monitor data by subscribing topic 'ebc_measurements/#'
 """
-from ebcmeasurements.Base import DataSource, DataOutput, DataLogger
-from ebcmeasurements.Mqtt import MqttDataSourceOutput
+from ebcmeasurements import DataSource, DataOutput, DataLogger, MqttDataSourceOutput
 
 
 def e05_mqtt():
