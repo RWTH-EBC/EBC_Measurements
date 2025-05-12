@@ -125,6 +125,7 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
             keepalive: int = 60,
             username: str = None,
             password: str = None,
+            use_tls: bool = False,
             subscribe_topics: list[str] | None = None,
             publish_topics: list[str] | None = None,
             **kwargs
@@ -137,11 +138,16 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
         :param keepalive: See package paho.mqtt.client
         :param username: See package paho.mqtt.client
         :param password: See package paho.mqtt.client
+        :param use_tls: Boolean flag if TLS encryption should be used
         :param subscribe_topics: List of topics to be subscribed from MQTT broker, None to deactivate subscribe function
         :param publish_topics: List of topics to be published to MQTT broker, None to deactivate publish function
         :param kwargs:
             'data_source_all_variable_names': List of all variable names for data source by subscribed topics
             'data_output_all_variable_names': List of all variable names for data output by published topics
+            'ca_certs': Str for TLS setting, see package paho.mqtt.client
+            'certfile': Str for TLS setting, see package paho.mqtt.client
+            'keyfile': Str for TLS setting, see package paho.mqtt.client
+            'tls_insecure': Boolean for TLS setting, see package paho.mqtt.client
 
         Default variable names are the same as topic names, formatted as '<topic>/<subtopic>/.../<variable>'.
         """
@@ -156,6 +162,14 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
         # Set username and password if provided
         if username and password:
             self.system.username_pw_set(username, password)
+        # Enable TLS if requested
+        if use_tls:
+            self.system.tls_set(
+                ca_certs=kwargs.get('ca_certs', None),
+                certfile=kwargs.get('certfile', None),
+                keyfile=kwargs.get('keyfile', None),
+            )
+            self.system.tls_insecure_set(kwargs.get('tls_insecure', False))
 
         # Init DataSource
         if subscribe_topics is not None:
