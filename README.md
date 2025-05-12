@@ -13,6 +13,11 @@ Potential use cases include field measurements, test bench monitoring, and Hardw
 With its versatile capabilities, this toolbox aims to enhance the efficiency of data acquisition processes across 
 different applications.
 
+If you have any questions regarding EBC-Measurements, feel free to contact us at [ebc-tools@eonerc.rwth-aachen.de](
+mailto:ebc-tools@eonerc.rwth-aachen.de).
+
+Available at PyPI as [EBC-Measurements](https://pypi.org/project/EBC-Measurements/).
+
 ## Tool structure and overview
 
 **Overview**
