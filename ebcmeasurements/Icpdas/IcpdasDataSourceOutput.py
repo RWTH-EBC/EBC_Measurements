@@ -23,8 +23,11 @@ class IcpdasDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
             data = {}
             # Read data by looping each module
             for m in self.system:
-                # Read data for all channels, return is {'Ch0': <value0>, 'Ch1': <value1>, ...}
+                # Read data for all channels, return is {'Ch0': <value0>, 'Ch1': <value1>, ...} or None
                 module_data = m.read_analog_input_all_channels()
+                if module_data is None:
+                    continue
+                # Update read values to dict: {'Mo0Ch0': <value>, 'Mo0Ch1': <value>,  ...}
                 data.update({f'Mo{m.slot_idx}{k}': v for k, v in module_data.items()})
             return data
 
