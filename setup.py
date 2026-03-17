@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='EBC-Measurements',
-    version='1.2.3',
+    version='1.2.4',
     author='RWTH Aachen University, E.ON Energy Research Center, '
            'Institute for Energy Efficient Buildings and Indoor Climate',
     author_email='ebc-tools@eonerc.rwth-aachen.de',
