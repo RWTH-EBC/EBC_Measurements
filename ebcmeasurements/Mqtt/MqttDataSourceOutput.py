@@ -158,7 +158,11 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
 
         # Config MQTT
         super().__init__()
-        self.system = mqtt.Client()
+        self.system = mqtt.Client(
+            client_id=hex(id(self)),
+            clean_session=False,
+            reconnect_on_failure=False,
+        )
         # Set username and password if provided
         if username and password:
             self.system.username_pw_set(username, password)
@@ -214,17 +218,14 @@ class MqttDataSourceOutput(DataSourceOutput.DataSourceOutputBase):
 
     def _mqtt_connect(self):
         """Try to connect to MQTT broker only once"""
-        if self.system.is_connected():
-            logger.info(f"MQTT broker already connected: {self.broker}")
-        else:
-            try:
-                logger.info(f"Connecting to broker: {self.broker} ...")
-                self.system.connect(self.broker, self.port, self.keepalive)  # Connect MQTT
-                mqtt_thread = threading.Thread(target=self._mqtt_loop_forever)
-                mqtt_thread.start()
-                logger.info(f"MQTT loop started")
-            except Exception as e:
-                logger.warning(f"Failed to connect to MQTT broker '{self.broker}', port '{self.port}': {e}")
+        try:
+            logger.info(f"Connecting to broker: {self.broker} ...")
+            self.system.connect(self.broker, self.port, self.keepalive)  # Connect MQTT
+            mqtt_thread = threading.Thread(target=self._mqtt_loop_forever)
+            mqtt_thread.start()
+            logger.info(f"MQTT loop started")
+        except Exception as e:
+            logger.warning(f"Failed to connect to MQTT broker '{self.broker}', port '{self.port}': {e}")
 
     def _mqtt_connect_with_retry(self, max_retries: int = 5, retry_period: int = 2):
         """Connect MQTT with multiple retries"""
