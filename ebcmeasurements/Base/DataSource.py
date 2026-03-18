@@ -36,10 +36,10 @@ class DataSourceBase(ABC):
         return self._all_variable_names
 
 
-class RandomDataSource(DataSourceBase):
+class RandomFloatSource(DataSourceBase):
     def __init__(self, size: int = 10, key_missing_rate: float = 0.5, value_missing_rate: float = 0.5):
         """
-        Random data source to simulate data generation
+        Random float source to simulate data generation
         :param size: Number of variables to generate
         :param key_missing_rate: Probability of a key being excluded from the final dictionary
         :param value_missing_rate: Probability of assigning None to a value instead of a random float
@@ -66,7 +66,7 @@ class RandomDataSource(DataSourceBase):
         }
 
 
-class RandomStringSource(RandomDataSource):
+class RandomStringSource(RandomFloatSource):
     def __init__(
             self, size: int = 10, str_length: int = 5, key_missing_rate: float = 0.5, value_missing_rate: float = 0.5):
         """
@@ -95,7 +95,7 @@ class RandomStringSource(RandomDataSource):
         }
 
 
-class RandomBooleanSource(RandomDataSource):
+class RandomBooleanSource(RandomFloatSource):
     def __init__(
             self, size: int = 10, key_missing_rate: float = 0.5, value_missing_rate: float = 0.5):
         """

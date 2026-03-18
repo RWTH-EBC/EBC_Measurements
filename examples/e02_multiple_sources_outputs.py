@@ -11,8 +11,8 @@ from ebcmeasurements import DataSource, DataOutput, DataLogger
 
 def e02_multiple_sources_outputs():
     # Firstly, two random data sources are implemented for this example.
-    data_source_1 = DataSource.RandomDataSource(size=2, key_missing_rate=0, value_missing_rate=0)
-    data_source_2 = DataSource.RandomDataSource(size=2, key_missing_rate=0, value_missing_rate=0)
+    data_source_1 = DataSource.RandomFloatSource(size=2, key_missing_rate=0, value_missing_rate=0)
+    data_source_2 = DataSource.RandomFloatSource(size=2, key_missing_rate=0, value_missing_rate=0)
 
     # Then, also implement two data outputs.
     data_output_a = DataOutput.DataOutputCsv(file_name=r'Results/e02_csv_output_A.csv')

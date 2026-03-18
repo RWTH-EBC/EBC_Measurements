@@ -15,7 +15,7 @@ from ebcmeasurements import DataSource, DataOutput, DataLogger
 def e01_basic_structure_example():
     # This example uses a simple data source that generates random data to simulate measurements from a sensor or
     # measurement device.
-    test_random_data_source = DataSource.RandomDataSource(size=5, key_missing_rate=0, value_missing_rate=0)
+    test_random_data_source = DataSource.RandomFloatSource(size=5, key_missing_rate=0, value_missing_rate=0)
 
     # This random data source is a passive data source, similar to most sensors and measurement devices used in
     # experiments: Data will be acquired only upon request. In EBC_Measurements, the method "read_data()" is
@@ -23,15 +23,15 @@ def e01_basic_structure_example():
     for req in range(5):
         data = test_random_data_source.read_data()
         # Use print to check the acquired data
-        print(f"Random data source, request {req}: {data}")
+        print(f"Random float source, request {req}: {data}")
 
     # In practice, keys and values may be missing during a measurement. This can be simulated by setting the missing
     # rates of the random data source.
-    test_random_data_source_missing = DataSource.RandomDataSource(size=5, key_missing_rate=0.5, value_missing_rate=0.5)
+    test_random_data_source_missing = DataSource.RandomFloatSource(size=5, key_missing_rate=0.5, value_missing_rate=0.5)
     for req in range(5):
         data = test_random_data_source_missing.read_data()
         # Use print to check the acquired data
-        print(f"Random data source (missing rate activated), request {req}: {data}")
+        print(f"Random float source (missing rate activated), request {req}: {data}")
 
     # By the way, it is possible to use a random string source to generate string data.
     test_random_string_source = DataSource.RandomStringSource(
@@ -47,7 +47,7 @@ def e01_basic_structure_example():
 
     # Step 1: Configuration data source(s)
     # Here uses a single random data source to generate data
-    random_data_source = DataSource.RandomDataSource(size=10, key_missing_rate=0.2, value_missing_rate=0.2)
+    random_data_source = DataSource.RandomFloatSource(size=10, key_missing_rate=0.2, value_missing_rate=0.2)
 
     # Step 2: Configuration data output(s)
     # Here uses two csv outputs to log data. The file path will be created automatically if it is not available.

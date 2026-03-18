@@ -42,7 +42,7 @@ def e04_beckhoff():
     # The following part shows how to write data to the PLC.
     # Implement different data sources for boolean, real, and string values
     bool_to_ads_source = DataSource.RandomBooleanSource(size=1, key_missing_rate=0, value_missing_rate=0.2)
-    real_to_ads_source = DataSource.RandomDataSource(size=1, key_missing_rate=0, value_missing_rate=0.2)
+    real_to_ads_source = DataSource.RandomFloatSource(size=1, key_missing_rate=0, value_missing_rate=0.2)
     string_to_ads_source = DataSource.RandomStringSource(size=1, key_missing_rate=0, value_missing_rate=0.2)
 
     # Implement data logger to log data to PLC

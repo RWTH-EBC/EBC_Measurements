@@ -15,7 +15,7 @@ setup(
     install_requires=[
         'pyserial~=3.5',
         'pyads~=3.4.2',
-        'setuptools~=72.1.0',
+        'setuptools~=82.0.1',
         'paho-mqtt~=2.1.0'
     ],
     classifiers=[
