@@ -14,9 +14,10 @@ setup(
     license='MIT',
     install_requires=[
         'pyserial~=3.5',
-        'pyads~=3.4.2',
+        'pyads~=3.5.2',
         'setuptools~=82.0.1',
-        'paho-mqtt~=2.1.0'
+        'paho-mqtt~=2.1.0',
+        'pandas~=3.0.1'
     ],
     classifiers=[
         'Programming Language :: Python :: 3',
