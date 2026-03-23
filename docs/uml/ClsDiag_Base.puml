@@ -18,23 +18,40 @@ package Base.DataSource{
         }
     end note
 
-    class RandomDataSource implements DataSourceBase {
+    class RandomFloatSource implements DataSourceBase {
         + size: int
         + key_missing_rate: float
         + value_missing_rate: float
         + __init__(size: int, key_missing_rate: float, value_missing_rate: float)
-        + read_data() : dict[str, real]
+        + read_data() : dict[str, float]
     }
 
-    class RandomStringSource extends RandomDataSource {
+    class RandomStringSource extends RandomFloatSource {
         + str_length: int
         + __init__(size: int, str_length: int, key_missing_rate: float, value_missing_rate: float)
         + read_data(): dict[str, str]
     }
 
-    class RandomBooleanSource extends RandomDataSource {
+    class RandomBooleanSource extends RandomFloatSource {
         + __init__(size: int, key_missing_rate: float, value_missing_rate: float)
         + read_data() : dict[str, bool]
+    }
+
+    class DataSourceTimeTable implements DataSourceBase {
+        # _fallback_methods: tuple[str, ...] {static}
+        # _init_keys: tuple[str, ...] {static}
+        + df_timetable: pd.DataFrame
+        + fallback_method: str
+        + datetime_column_name: str
+        + datetime_format: str
+        + __init__(df_timetable: pd.DataFrame, fallback_method: str, **kwargs)
+        # _process_timetable()
+        # _check_duplicate_datetime()
+        # _check_monotonic_datetime()
+        # _extract_data_from_timetable(dt_target: datetime, fallback_method: str): dict
+        + read_data(): dict
+        + from_csv(file_name: str, **kwargs): DataSourceTimeTable
+        + from_excel(file_name: str, **kwargs): DataSourceTimeTable
     }
 }
 

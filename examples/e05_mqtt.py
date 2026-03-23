@@ -21,7 +21,7 @@ def e05_mqtt():
 
     # The following part shows how to publish values to MQTT broker
     # Implement a random data source
-    data_to_mqtt_source = DataSource.RandomDataSource(size=3, key_missing_rate=0.2, value_missing_rate=0.2)
+    data_to_mqtt_source = DataSource.RandomFloatSource(size=3, key_missing_rate=0.2, value_missing_rate=0.2)
 
     # Implement data logger to publish data to MQTT
     logger_publish = DataLogger.DataLoggerTimeTrigger(

@@ -6,6 +6,10 @@ node "Data Source"{
         () "random data"
         [float / string / boolean] --> "random data"
     }
+    frame "Timetable"{
+        () "scheduled data"
+        [pandas DataFrame] --> "scheduled data"
+    }
     frame "Sensor Electronic"{
         () "serial port"
         [AirDistSys / ThermCondSys] --> "serial port"
@@ -56,6 +60,7 @@ node "Data Logger"{
     "Logger" <|.. "MQTT on-message trigger"
 
     "random data" -[#Red]-> "key-value pairs in"
+    "scheduled data" -[#Red]-> "key-value pairs in"
     "serial port" -[#Red]-> "key-value pairs in"
 
     "key-value pairs out" -[#Green]-> "csv writer"

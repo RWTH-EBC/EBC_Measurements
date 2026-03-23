@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='EBC-Measurements',
-    version='1.2.4',
+    version='1.3.0',
     author='RWTH Aachen University, E.ON Energy Research Center, '
            'Institute for Energy Efficient Buildings and Indoor Climate',
     author_email='ebc-tools@eonerc.rwth-aachen.de',
@@ -14,9 +14,10 @@ setup(
     license='MIT',
     install_requires=[
         'pyserial~=3.5',
-        'pyads~=3.4.2',
-        'setuptools~=72.1.0',
-        'paho-mqtt~=2.1.0'
+        'pyads~=3.5.2',
+        'setuptools~=82.0.1',
+        'paho-mqtt~=2.1.0',
+        'pandas~=3.0.1'
     ],
     classifiers=[
         'Programming Language :: Python :: 3',
