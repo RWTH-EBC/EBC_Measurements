@@ -138,14 +138,15 @@ class DataSourceTimeTable(DataSourceBase):
         """
         Data source that provides data based on a schedule (timetable)
 
-        :param df_timetable: Timetable in pandas DataFrame. It should contain a column of datetime values, which can be
-            defined with kwargs 'datetime_column_name' and 'datetime_format'
+        :param df_timetable: Timetable in pandas DataFrame. It should contain a column or index of datetime values,
+            which can be defined with kwargs 'datetime_column_name' and 'datetime_format'
         :param fallback_method: Fallback method when target datetime is not in index, supporting 'prior', 'next' and
             'interpolate'
         :param kwargs:
             'datetime_column_name': str: Column name of datetime in pandas DataFrame. Default is 'datetime'.
             'datetime_format': str: Format of datetime in pandas DataFrame. Default is '%Y-%m-%d %H:%M:%S'.
         """
+        logger.info("Initializing DataSourceTimeTable ...")
         super().__init__()
         self.df_timetable = df_timetable
         if fallback_method not in self._fallback_methods:
@@ -160,13 +161,24 @@ class DataSourceTimeTable(DataSourceBase):
         self._check_duplicate_datetime()
         self._check_monotonic_datetime()
 
+        # Extract all variable names
+        self._all_variable_names = tuple(self.df_timetable.columns)
+
     def _process_timetable(self) -> None:
         """Process timetable"""
-        # Convert string in datetime
-        self.df_timetable[self.datetime_column_name] = pd.to_datetime(
-            self.df_timetable[self.datetime_column_name], format=self.datetime_format)
-        # Set datetime to index
-        self.df_timetable = self.df_timetable.set_index(self.datetime_column_name)
+        if self.datetime_column_name in self.df_timetable.columns:
+            # Datetime in columns, convert string in datetime
+            self.df_timetable[self.datetime_column_name] = pd.to_datetime(
+                self.df_timetable[self.datetime_column_name], format=self.datetime_format)
+            # Set datetime to index
+            self.df_timetable = self.df_timetable.set_index(self.datetime_column_name)
+        elif self.df_timetable.index.name == self.datetime_column_name:
+            # Datetime in index, rename the index
+            self.df_timetable.index.name = 'datetime'
+            # Convert to datetime
+            self.df_timetable.index = pd.to_datetime(self.df_timetable.index, format=self.datetime_format)
+        else:
+            raise ValueError(f"Invalid datetime column name '{self.datetime_column_name}': not found in index or column")
 
     def _check_duplicate_datetime(self) -> None:
         """Check duplicates of datetime, if duplicates exist, keep the last duplicates"""
@@ -218,7 +230,12 @@ class DataSourceTimeTable(DataSourceBase):
 
     @classmethod
     def from_csv(cls, file_name: str, **kwargs) -> 'DataSourceTimeTable':
-        """Create instance of DataSourceTimeTable from csv file"""
+        """
+        Create instance of DataSourceTimeTable from csv file
+
+        :param file_name: csv file name
+        :param kwargs: kwargs of DataSourceTimeTable and pandas.read_csv
+        """
         csv_kwargs = {k: v for k, v in kwargs.items() if k not in DataSourceTimeTable._init_keys}
         cls_kwargs = {k: v for k, v in kwargs.items() if k in DataSourceTimeTable._init_keys}
         # Load csv to df
@@ -227,7 +244,12 @@ class DataSourceTimeTable(DataSourceBase):
 
     @classmethod
     def from_excel(cls, file_name: str, **kwargs) -> 'DataSourceTimeTable':
-        """Create instance of DataSourceTimeTable from Excel file"""
+        """
+        Create instance of DataSourceTimeTable from Excel file
+
+        :param file_name: Excel file name
+        :param kwargs: kwargs of DataSourceTimeTable and pandas.read_excel
+        """
         excel_kwargs = {k: v for k, v in kwargs.items() if k not in DataSourceTimeTable._init_keys}
         cls_kwargs = {k: v for k, v in kwargs.items() if k in DataSourceTimeTable._init_keys}
         # Load excel to df

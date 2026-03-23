@@ -7,7 +7,6 @@ steps are usually necessary:
 1. Configuration of data source(s)
 2. Configuration of data output(s)
 3. Configuration of data logger(s)
-
 """
 from ebcmeasurements import DataSource, DataOutput, DataLogger
 

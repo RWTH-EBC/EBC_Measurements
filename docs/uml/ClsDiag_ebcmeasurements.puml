@@ -22,9 +22,10 @@ package Base.DataOutput{
 }
 package Base.DataSource{
     abstract class DataSourceBase
-    class RandomDataSource implements DataSourceBase
-    class RandomStringSource extends RandomDataSource
-    class RandomBooleanSource extends RandomDataSource
+    class RandomFloatSource implements DataSourceBase
+    class RandomStringSource extends RandomFloatSource
+    class RandomBooleanSource extends RandomFloatSource
+    class DataSourceTimeTable implements DataSourceBase
 }
 package Base.DataSourceOutput{
     abstract class DataSourceOutputBase
